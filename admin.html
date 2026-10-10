@@ -86,6 +86,11 @@
         <button class="btn btn-primary btn-block hidden" type="button" id="aFacial">Entregar premio del 5° corte</button>
         <button class="btn btn-primary btn-block hidden" type="button" id="aPremio">Entregar premio final y empezar tarjeta nueva</button>
         <button class="btn btn-ghost btn-block" type="button" id="aQuitar">Quitar último sello</button>
+        <a class="btn btn-ghost btn-block" id="aWhats" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
+          Mandarle su tarjeta por WhatsApp
+        </a>
+        <button class="btn btn-block" type="button" id="aBorrar" style="background:transparent;border:2px solid rgba(229,103,90,.6);color:#F2B1A8">Borrar cliente</button>
       </div>
       <div id="dMsg" class="aviso ok hidden" role="status"></div>
     </div>
@@ -106,7 +111,7 @@
 import { db, auth, configurado, esMesDeCumple, cumpleBonito, escapar, pintarSellos } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, runTransaction, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, runTransaction, addDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = id => document.getElementById(id);
 const MAX = NEGOCIO.sellosPorTarjeta, MITAD = NEGOCIO.premioMitad, FIN = NEGOCIO.premioFinal;
@@ -254,6 +259,10 @@ function pintarCliente(c) {
   if (s >= FIN.en) estado += ` <b>Tarjeta completa: entrega ${escapar(FIN.texto)}.</b>`;
   $("dEstado").innerHTML = estado;
 
+  const link = new URL("tarjeta.html?id=" + encodeURIComponent(actual), location.href).href;
+  $("aWhats").href = `https://wa.me/52${c.telefono}?text=` +
+    encodeURIComponent(`Hola ${c.nombre}, esta es tu tarjeta de cliente frecuente de Traffic Barber: ${link}`);
+
   $("aSellar").disabled = s >= MAX;
   $("aQuitar").disabled = s <= 0;
   $("aFacial").classList.toggle("hidden", !(s >= MITAD.en && !c.facialCanjeado));
@@ -303,6 +312,32 @@ $("aPremio").addEventListener("click", () => {
     c => ({ sellos: 0, facialCanjeado: false, tarjetas: (c.tarjetas || 0) + 1 }),
     "Premio entregado. Tarjeta nueva lista ✓");
 });
+$("aBorrar").addEventListener("click", async () => {
+  if (!actual || !actualDatos) return;
+  const nombre = actualDatos.nombre;
+  if (!confirm(`¿Borrar a ${nombre}?\n\nSe borran su tarjeta, sus sellos y su historial. No se puede deshacer.`)) return;
+  const btn = $("aBorrar");
+  btn.disabled = true;
+  try {
+    const id = actual;
+    if (desuscribir) desuscribir();
+    const visitas = await getDocs(collection(db, "clientes", id, "visitas"));
+    const lote = writeBatch(db);
+    visitas.forEach(v => lote.delete(v.ref));
+    lote.delete(doc(db, "clientes", id));
+    await lote.commit();
+    actual = null; actualDatos = null;
+    $("detalle").classList.add("hidden");
+    $("resultados").innerHTML = `<div class="aviso ok">Se borró a ${escapar(nombre)}.</div>`;
+    cargarListas();
+  } catch (ex) {
+    console.error(ex);
+    $("dMsg").textContent = "No se pudo borrar. Intenta de nuevo.";
+    $("dMsg").classList.remove("hidden");
+  }
+  btn.disabled = false;
+});
+
 $("btnCerrarDetalle").addEventListener("click", () => {
   if (desuscribir) desuscribir();
   actual = null;

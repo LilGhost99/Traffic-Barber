@@ -6,6 +6,13 @@
 <title>Mi tarjeta · Traffic Barber</title>
 <meta name="description" content="Tu tarjeta de cliente frecuente de Traffic Barber: junta sellos, ve promociones y recibe un regalo en tu cumpleaños.">
 <meta name="theme-color" content="#0D0E10">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icono-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Traffic Barber">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Barlow+Condensed:ital,wght@0,800;1,900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -82,6 +89,30 @@
       <div class="qr-wrap">
         <div class="qr" id="tQR" aria-label="Código QR de tu tarjeta"></div>
         <p>Enséñale este código al barbero para que te <b style="color:var(--text)">selle tu visita</b>. Tu tarjeta se actualiza sola.</p>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>Guarda tu tarjeta</h2>
+      <p class="muted" style="margin:0 0 14px;font-size:15px;line-height:1.5">Elige la que te acomode. Así la tienes a la mano aunque cierres esta página.</p>
+      <div style="display:grid;gap:10px">
+        <button class="btn btn-primary btn-block" type="button" id="gImagen">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          Guardar imagen en mi galería
+        </button>
+        <button class="btn btn-ghost btn-block" type="button" id="gInicio">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 8v6M9 11h6"/></svg>
+          Agregar a mi pantalla de inicio
+        </button>
+        <div id="gInicioPasos" class="aviso oro hidden"></div>
+        <a class="btn btn-ghost btn-block" id="gWhats" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
+          Mandarme el link por WhatsApp
+        </a>
+        <button class="btn btn-ghost btn-block" type="button" id="gCopiar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+          <span>Copiar link de mi tarjeta</span>
+        </button>
       </div>
     </div>
 
@@ -171,6 +202,9 @@ function prepararRegistro() {
 let qrHecho = false;
 let sellosPrevios = null;
 let desuscribir = null;
+let idActual = null;
+let nombreActual = "";
+const urlTarjeta = () => location.origin + location.pathname + "?id=" + encodeURIComponent(idActual);
 
 function textoEstado(c) {
   const s = c.sellos || 0, mitad = NEGOCIO.premioMitad, fin = NEGOCIO.premioFinal;
@@ -183,11 +217,14 @@ function textoEstado(c) {
 }
 
 function abrirTarjeta(id) {
+  idActual = id;
+  $("gWhats").href = "https://wa.me/?text=" + encodeURIComponent("Mi tarjeta de Traffic Barber: " + urlTarjeta());
   mostrar("vistaTarjeta");
   if (desuscribir) desuscribir();
   desuscribir = onSnapshot(doc(db, "clientes", id), (snap) => {
     if (!snap.exists()) { borrarId(); mostrar("vistaRegistro"); return; }
     const c = snap.data();
+    nombreActual = c.nombre;
     $("tNombre").textContent = c.nombre;
     $("tSub").textContent = (c.tarjetas ? `Tarjeta #${c.tarjetas + 1} · ` : "") + "Cliente frecuente";
     pintarSellos($("tSellos"), c.sellos || 0, NEGOCIO);
@@ -226,6 +263,117 @@ function pintarPromos() {
   });
 }
 
+// ---------- Guardar la tarjeta ----------
+let promptInstalar = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); promptInstalar = e; });
+const enModoApp = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+
+function pintarPolo(ctx, y, alto, ancho) {
+  const colores = ["#B3202F", "#F4F1EA", "#2D5BA8", "#F4F1EA"];
+  for (let x = -alto, i = 0; x < ancho + alto; x += 12, i++) {
+    ctx.fillStyle = colores[i % 4];
+    ctx.beginPath();
+    ctx.moveTo(x, y + alto); ctx.lineTo(x + alto, y); ctx.lineTo(x + alto + 12, y); ctx.lineTo(x + 12, y + alto);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+function texto(ctx, t, x, y, fuente, color, espaciado) {
+  ctx.font = fuente; ctx.fillStyle = color; ctx.textAlign = "center";
+  if ("letterSpacing" in ctx) ctx.letterSpacing = espaciado || "0px";
+  ctx.fillText(t, x, y);
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+}
+
+async function crearImagen() {
+  try {
+    await Promise.all([
+      document.fonts.load('150px "Pinyon Script"'),
+      document.fonts.load('italic 900 72px "Barlow Condensed"'),
+      document.fonts.load('800 44px "Barlow Condensed"'),
+      document.fonts.load('500 34px "Barlow"')
+    ]);
+  } catch {}
+  const W = 1080, H = 1350;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#0D0E10"; ctx.fillRect(0, 0, W, H);
+  pintarPolo(ctx, 0, 18, W);
+  pintarPolo(ctx, H - 18, 18, W);
+
+  ctx.strokeStyle = "#D4AF37"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(44, 62, W - 88, H - 124, 36); ctx.stroke();
+
+  texto(ctx, "Traffic", W / 2, 250, '150px "Pinyon Script"', "#D4AF37");
+  texto(ctx, "BARBER", W / 2 + 9, 318, '800 44px "Barlow Condensed"', "#D4AF37", "18px");
+  texto(ctx, (nombreActual || "").toUpperCase(), W / 2, 440, 'italic 900 76px "Barlow Condensed"', "#F4F1EA");
+  texto(ctx, "CLIENTE FRECUENTE", W / 2 + 4, 490, '600 28px "Barlow"', "#A8A49B", "6px");
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath(); ctx.roundRect(250, 545, 580, 580, 28); ctx.fill();
+  const fuenteQR = $("tQR").querySelector("canvas") || $("tQR").querySelector("img");
+  if (fuenteQR) { ctx.imageSmoothingEnabled = false; ctx.drawImage(fuenteQR, 290, 585, 500, 500); }
+
+  texto(ctx, "Enséñale este código al barbero", W / 2, 1195, '500 36px "Barlow"', "#CBC6BB");
+  texto(ctx, "REAL DE TOLEDO · PACHUCA", W / 2 + 3, 1250, '800 26px "Barlow Condensed"', "#B9A06A", "6px");
+  return c;
+}
+
+function prepararGuardar() {
+  $("gImagen").addEventListener("click", async () => {
+    const btn = $("gImagen");
+    btn.disabled = true;
+    try {
+      const canvas = await crearImagen();
+      const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+      const archivo = new File([blob], "tarjeta-traffic-barber.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        await navigator.share({ files: [archivo], title: "Mi tarjeta Traffic Barber" });
+      } else {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = archivo.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      }
+    } catch (ex) {
+      if (ex && ex.name !== "AbortError") { console.error(ex); alert("No se pudo crear la imagen. Toma una captura de pantalla de tu tarjeta."); }
+    }
+    btn.disabled = false;
+  });
+
+  if (enModoApp) $("gInicio").classList.add("hidden");
+  $("gInicio").addEventListener("click", async () => {
+    if (promptInstalar) {
+      promptInstalar.prompt();
+      try { await promptInstalar.userChoice; } catch {}
+      promptInstalar = null;
+      return;
+    }
+    const ua = navigator.userAgent;
+    const ios = /iPhone|iPad|iPod/.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
+    const android = /Android/.test(ua);
+    let pasos;
+    if (ios) pasos = "En el iPhone: toca el botón <b>Compartir</b> (el cuadrito con flecha hacia arriba) → baja y elige <b>Agregar a inicio</b> → <b>Agregar</b>. Te queda un ícono como app.";
+    else if (android) pasos = "En Android: toca el menú <b>⋮</b> del navegador (arriba a la derecha) → <b>Agregar a la pantalla principal</b> o <b>Instalar app</b>.";
+    else pasos = "Abre esta página desde tu celular para agregarla a tu pantalla de inicio.";
+    $("gInicioPasos").innerHTML = pasos;
+    $("gInicioPasos").classList.toggle("hidden");
+  });
+
+  $("gCopiar").addEventListener("click", async () => {
+    const etiqueta = $("gCopiar").querySelector("span");
+    try {
+      await navigator.clipboard.writeText(urlTarjeta());
+      etiqueta.textContent = "¡Link copiado!";
+    } catch {
+      prompt("Copia este link:", urlTarjeta());
+    }
+    setTimeout(() => { etiqueta.textContent = "Copiar link de mi tarjeta"; }, 2200);
+  });
+}
+
 // ---------- Inicio ----------
 if (!configurado) {
   $("cargando").classList.add("hidden");
@@ -233,6 +381,7 @@ if (!configurado) {
 } else {
   prepararRegistro();
   pintarPromos();
+  prepararGuardar();
   const id = leerId();
   if (id) { guardarId(id); abrirTarjeta(id); }
   else mostrar("vistaRegistro");
