@@ -201,6 +201,21 @@
       <div id="cAviso" class="aviso ok hidden" role="status"></div>
     </div>
 
+    <div class="box">
+      <h2>Reseñas en la página</h2>
+      <p class="muted" style="margin:0 0 12px;font-size:14px;line-height:1.5">Copia reseñas <b>reales</b> de Google, con el nombre como aparece ahí. Se muestran en el Inicio de la página (máximo 6). Si no hay ninguna, la página muestra lo que más mencionan los clientes.</p>
+      <div id="listaResenasAdmin" class="promos"><span class="muted">Cargando…</span></div>
+      <form id="formResena" style="margin-top:14px;gap:10px">
+        <input id="rNombre" maxlength="40" placeholder="Nombre como aparece en Google" aria-label="Nombre de quien dejó la reseña">
+        <textarea id="rTexto" maxlength="280" placeholder="Copia aquí el texto de la reseña" aria-label="Texto de la reseña"></textarea>
+        <label style="flex-direction:row;align-items:center;gap:10px">Estrellas
+          <select id="rEstrellas" style="width:auto"><option>5</option><option>4</option><option>3</option></select>
+        </label>
+        <button class="btn btn-primary btn-block" type="submit">+ Agregar reseña</button>
+      </form>
+      <div id="rAviso" class="aviso error hidden" role="alert"></div>
+    </div>
+
     </div>
 
     <!-- ===== Números ===== -->
@@ -792,6 +807,40 @@ $("formPromoCliente").addEventListener("submit", async (e) => {
   }
 });
 
+// ---------- Reseñas para la página ----------
+function escucharResenas() {
+  onSnapshot(collection(db, "resenas"), (snap) => {
+    const el = $("listaResenasAdmin");
+    el.innerHTML = "";
+    if (snap.empty) { el.innerHTML = '<span class="muted">Todavía no hay reseñas en la página.</span>'; return; }
+    snap.docs
+      .sort((a, b) => (b.data().creado?.seconds || 0) - (a.data().creado?.seconds || 0))
+      .forEach(d => {
+        const r = d.data();
+        el.appendChild(itemPromo({ titulo: `${"★".repeat(r.estrellas || 5)} ${r.nombre}`, detalle: r.texto, activa: r.activa }, [
+          [r.activa === false ? "Mostrar" : "Ocultar", "btn-ghost", () => updateDoc(d.ref, { activa: r.activa === false })],
+          ["Borrar", "btn-peligro", async () => { if (confirm(`¿Borrar la reseña de ${r.nombre}?`)) await deleteDoc(d.ref); }]
+        ]));
+      });
+  }, (ex) => { console.error(ex); $("listaResenasAdmin").innerHTML = '<span class="muted">No se pudo cargar. Revisa que hayas pegado las reglas nuevas.</span>'; });
+}
+
+$("formResena").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const nombre = $("rNombre").value.trim(), texto = $("rTexto").value.trim(), estrellas = Number($("rEstrellas").value);
+  const aviso = $("rAviso");
+  aviso.classList.add("hidden");
+  if (!nombre || !texto) { aviso.textContent = "Escribe el nombre y el texto de la reseña."; aviso.classList.remove("hidden"); return; }
+  try {
+    await addDoc(collection(db, "resenas"), { nombre, texto, estrellas, activa: true, creado: serverTimestamp(), por: auth.currentUser?.email || "" });
+    $("formResena").reset();
+  } catch (ex) {
+    console.error(ex);
+    aviso.textContent = "No se pudo guardar. Revisa que hayas pegado las reglas nuevas en Firestore.";
+    aviso.classList.remove("hidden");
+  }
+});
+
 // ---------- Premios y cumpleaños ----------
 function aplicarConfig(cfg) {
   if (cfg.premioMitad) MITAD.texto = cfg.premioMitad;
@@ -850,6 +899,7 @@ if (!configurado) {
       window.__escuchando = true;
       escucharPromosGenerales();
       escucharConfig();
+      escucharResenas();
     }
   });
 }
