@@ -43,7 +43,8 @@
   .logo-c .place{margin-top:16px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:15px;letter-spacing:.36em;padding-left:.36em;color:var(--gold-soft)}
 
   /* Header */
-  header{position:sticky;top:0;z-index:10;background:rgba(13,14,16,.92);backdrop-filter:blur(8px);border-bottom:1px solid #222}
+  header{position:sticky;top:0;z-index:10;background:#0D0E10;border-bottom:1px solid #222;transition:transform .3s ease}
+  header.oculto{transform:translateY(-100%)}
   .nav{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px;padding-top:10px;padding-bottom:10px}
   .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--gold)}
   .brand svg{flex-shrink:0}
@@ -213,7 +214,12 @@
 
   /* ---------- Celular ---------- */
   @media (max-width:640px){
-    .nav{row-gap:6px}
+    .nav{row-gap:4px;padding-top:8px;padding-bottom:4px}
+    .brand svg{width:36px;height:22px}
+    .brand .name b{font-size:30px}
+    .brand .name small{font-size:10px;margin-top:4px}
+    .btn-agenda{padding:8px 14px;min-height:40px;font-size:14px}
+    .float{width:54px;height:54px;right:16px;bottom:16px}
     .links{order:3;width:100%;margin:0;justify-content:space-between;border-top:1px solid #222;padding-top:4px;font-size:15px}
     .links a{padding:10px 2px}
     .btn-agenda{margin-left:auto}

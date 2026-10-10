@@ -1,4 +1,26 @@
 // Animaciones de las páginas públicas: aparecer al hacer scroll y contadores.
+// El encabezado se esconde al bajar y regresa al subir, para dejar más pantalla libre.
+(function () {
+  var ultimo = window.scrollY, pendiente = false;
+  function revisar() {
+    pendiente = false;
+    var header = document.querySelector("header");
+    if (!header) return;
+    var y = window.scrollY;
+    if (y > ultimo + 4 && y > 140) header.classList.add("oculto");
+    else if (y < ultimo - 4 || y < 140) header.classList.remove("oculto");
+    ultimo = y;
+  }
+  window.addEventListener("scroll", function () {
+    if (!pendiente) { pendiente = true; requestAnimationFrame(revisar); }
+  }, { passive: true });
+  // Si alguien navega con teclado y entra al menú, que se vea
+  document.addEventListener("focusin", function (e) {
+    var header = document.querySelector("header");
+    if (header && header.contains(e.target)) header.classList.remove("oculto");
+  });
+})();
+
 (function () {
   var reducir = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var soporta = "IntersectionObserver" in window;
