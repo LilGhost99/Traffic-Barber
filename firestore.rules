@@ -39,6 +39,24 @@ service cloud.firestore {
       match /visitas/{visitaId} {
         allow read, write: if esAdmin();
       }
+
+      // Promos personales de este cliente: las ve quien tenga el link de su tarjeta; solo el admin las crea o borra.
+      match /promos/{promoId} {
+        allow read: if true;
+        allow write: if esAdmin();
+      }
+    }
+
+    // Promociones para todos: cualquiera las ve, solo el admin las cambia.
+    match /promos/{promoId} {
+      allow read: if true;
+      allow write: if esAdmin();
+    }
+
+    // Premios y regalo de cumpleaños: cualquiera los ve, solo el admin los cambia.
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if esAdmin();
     }
 
     // Cada admin solo puede comprobar su propio registro. Nadie puede escribir aquí desde la página.

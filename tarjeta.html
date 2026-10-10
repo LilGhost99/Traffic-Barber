@@ -208,7 +208,7 @@ const urlTarjeta = () => location.origin + location.pathname + "?id=" + encodeUR
 
 function textoEstado(c) {
   const s = c.sellos || 0, mitad = NEGOCIO.premioMitad, fin = NEGOCIO.premioFinal;
-  if (s >= fin.en) return `¡Tarjeta completa! Reclama tu <b>${escapar(fin.texto)}</b> en tu próxima visita.`;
+  if (s >= fin.en) return `¡Tarjeta completa! Pídele hoy al barbero tu <b>${escapar(fin.texto)}</b>.`;
   let t = "";
   if (s < mitad.en) t = `Te faltan <b>${mitad.en - s}</b> sello${mitad.en - s === 1 ? "" : "s"} para tu <b>${escapar(mitad.texto)}</b>.`;
   else if (!c.facialCanjeado) t = `¡Hoy te toca tu <b>${escapar(mitad.texto)}</b>! Pídeselo al barbero en esta visita.`;
@@ -221,9 +221,22 @@ function abrirTarjeta(id) {
   $("gWhats").href = "https://wa.me/?text=" + encodeURIComponent("Mi tarjeta de Traffic Barber: " + urlTarjeta());
   mostrar("vistaTarjeta");
   if (desuscribir) desuscribir();
+  if (desuscribirPromos) desuscribirPromos();
+  desuscribirPromos = onSnapshot(collection(db, "clientes", id, "promos"), (snap) => {
+    promosPersonales = snap.docs.map(d => d.data()).filter(p => p.activa !== false);
+    pintarListaPromos();
+  }, (ex) => console.error(ex));
   desuscribir = onSnapshot(doc(db, "clientes", id), (snap) => {
     if (!snap.exists()) { borrarId(); mostrar("vistaRegistro"); return; }
-    const c = snap.data();
+    pintarTarjeta(snap.data(), id);
+  }, (ex) => {
+    console.error(ex);
+    $("tEstado").textContent = "No pudimos cargar tu tarjeta. Revisa tu conexión.";
+  });
+}
+
+function pintarTarjeta(c, id) {
+    ultimoCliente = c;
     nombreActual = c.nombre;
     $("tNombre").textContent = c.nombre;
     $("tSub").textContent = (c.tarjetas ? `Tarjeta #${c.tarjetas + 1} · ` : "") + "Cliente frecuente";
@@ -246,15 +259,51 @@ function abrirTarjeta(id) {
       new QRCode($("tQR"), { text: url, width: 208, height: 208, colorDark: "#0D0E10", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
       qrHecho = true;
     }
-  }, (ex) => {
-    console.error(ex);
-    $("tEstado").textContent = "No pudimos cargar tu tarjeta. Revisa tu conexión.";
-  });
+}
+
+// ---------- Promociones y ajustes (los cambia el admin desde el panel) ----------
+let promosGenerales = null;   // null = todavía no cargan
+let promosPersonales = [];
+let desuscribirPromos = null;
+let ultimoCliente = null;
+
+function tarjetaPromo(p, personal) {
+  return `<div class="promo${personal ? " personal" : ""}">` +
+    (personal ? `<em class="etiqueta">Solo para ti ✨</em>` : "") +
+    `<b>${escapar(p.titulo)}</b>${p.detalle ? `<span>${escapar(p.detalle)}</span>` : ""}</div>`;
+}
+
+function pintarListaPromos() {
+  let generales = promosGenerales;
+  if (generales === null) generales = [];
+  else if (generales.length === 0 && !hayPromosEnBase) generales = NEGOCIO.promociones;
+  const html = promosPersonales.map(p => tarjetaPromo(p, true)).join("") + generales.map(p => tarjetaPromo(p, false)).join("");
+  $("tPromos").innerHTML = html || '<span class="muted">Pronto habrá promociones nuevas. ¡Pendiente!</span>';
+}
+
+let hayPromosEnBase = false;
+function escucharAjustes() {
+  onSnapshot(collection(db, "promos"), (snap) => {
+    hayPromosEnBase = !snap.empty;
+    promosGenerales = snap.docs
+      .map(d => d.data())
+      .filter(p => p.activa !== false)
+      .sort((a, b) => (b.creado?.seconds || 0) - (a.creado?.seconds || 0));
+    pintarListaPromos();
+  }, (ex) => { console.error(ex); promosGenerales = []; pintarListaPromos(); });
+
+  onSnapshot(doc(db, "config", "negocio"), (snap) => {
+    if (!snap.exists()) return;
+    const cfg = snap.data();
+    if (cfg.premioMitad) NEGOCIO.premioMitad.texto = cfg.premioMitad;
+    if (cfg.premioFinal) NEGOCIO.premioFinal.texto = cfg.premioFinal;
+    if (cfg.promoCumple) NEGOCIO.promoCumple = cfg.promoCumple;
+    if (ultimoCliente && idActual) pintarTarjeta(ultimoCliente, idActual);
+  }, (ex) => console.error(ex));
 }
 
 function pintarPromos() {
-  $("tPromos").innerHTML = NEGOCIO.promociones.map(p =>
-    `<div class="promo"><b>${escapar(p.titulo)}</b><span>${escapar(p.detalle)}</span></div>`).join("");
+  pintarListaPromos();
   $("tAgenda").href = `https://wa.me/${NEGOCIO.whatsapp}?text=${encodeURIComponent("Hola, quiero agendar un corte")}`;
   $("tSalir").addEventListener("click", () => {
     if (!confirm("¿Salir de esta tarjeta en este celular? La tarjeta no se borra.")) return;
@@ -382,6 +431,7 @@ if (!configurado) {
   prepararRegistro();
   pintarPromos();
   prepararGuardar();
+  escucharAjustes();
   const id = leerId();
   if (id) { guardarId(id); abrirTarjeta(id); }
   else mostrar("vistaRegistro");

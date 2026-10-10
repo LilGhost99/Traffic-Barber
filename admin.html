@@ -125,6 +125,37 @@
         <button class="btn btn-block" type="button" id="aBorrar" style="background:transparent;border:2px solid rgba(229,103,90,.6);color:#F2B1A8">Borrar cliente</button>
       </div>
       <div id="dMsg" class="aviso ok hidden" role="status"></div>
+
+      <div class="subtitulo">Promos solo para este cliente</div>
+      <div id="dPromos" class="promos"></div>
+      <form id="formPromoCliente" style="margin-top:12px;gap:10px">
+        <input id="pcTitulo" maxlength="60" placeholder="Ej. 20% en tu próximo corte" aria-label="Título de la promo para este cliente">
+        <input id="pcDetalle" maxlength="140" placeholder="Detalle (opcional), ej. válido este mes" aria-label="Detalle de la promo">
+        <button class="btn btn-ghost btn-block" type="submit">+ Agregar promo para este cliente</button>
+      </form>
+    </div>
+
+    <div class="box">
+      <h2>Promociones para todos</h2>
+      <p class="muted" style="margin:0 0 12px;font-size:14px;line-height:1.5">Aparecen al instante en la tarjeta de todos los clientes. Puedes pausarlas sin borrarlas.</p>
+      <div id="listaPromos" class="promos"><span class="muted">Cargando…</span></div>
+      <form id="formPromo" style="margin-top:14px;gap:10px">
+        <input id="pTitulo" maxlength="60" placeholder="Título, ej. Martes 2x1 con tu compa" aria-label="Título de la promoción">
+        <input id="pDetalle" maxlength="140" placeholder="Detalle (opcional), ej. solo de 12 a 4pm" aria-label="Detalle de la promoción">
+        <button class="btn btn-primary btn-block" type="submit">+ Agregar promoción</button>
+      </form>
+      <div id="pAviso" class="aviso error hidden" role="alert"></div>
+    </div>
+
+    <div class="box">
+      <h2>Premios y cumpleaños</h2>
+      <form id="formConfig" style="gap:12px">
+        <label>Premio del 5° corte<input id="cMitad" maxlength="60"></label>
+        <label>Premio del 10° corte<input id="cFinal" maxlength="60"></label>
+        <label>Regalo de cumpleaños<span class="hint">Se le muestra al cliente todo el mes de su cumpleaños</span><input id="cCumple" maxlength="80"></label>
+        <button class="btn btn-primary btn-block" type="submit">Guardar</button>
+      </form>
+      <div id="cAviso" class="aviso ok hidden" role="status"></div>
     </div>
 
     <div class="box">
@@ -143,11 +174,15 @@
 import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, runTransaction, addDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, runTransaction, addDoc, serverTimestamp, writeBatch, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = id => document.getElementById(id);
 const MAX = NEGOCIO.sellosPorTarjeta, MITAD = NEGOCIO.premioMitad, FIN = NEGOCIO.premioFinal;
-$("aFacial").textContent = `Entregar ${MITAD.texto.toLowerCase()} (${MITAD.en}° corte)`;
+function textoBotones() {
+  $("aFacial").textContent = `Entregar ${MITAD.texto.toLowerCase()} (${MITAD.en}° corte)`;
+  $("aPremio").textContent = `Entregar ${FIN.texto.toLowerCase()} y empezar tarjeta nueva`;
+}
+textoBotones();
 
 function vista(v) {
   ["vistaLogin","vistaPanel"].forEach(x => $(x).classList.toggle("hidden", x !== v));
@@ -342,6 +377,7 @@ async function abrirCliente(id) {
   actual = id;
   if (desuscribir) desuscribir();
   desuscribir = onSnapshot(doc(db, "clientes", id), s => { if (s.exists()) pintarCliente(s.data()); });
+  escucharPromosCliente(id);
   $("detalle").classList.remove("hidden");
   $("detalle").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -433,9 +469,12 @@ $("aBorrar").addEventListener("click", async () => {
   try {
     const id = actual;
     if (desuscribir) desuscribir();
+    if (desuscribirPC) { desuscribirPC(); desuscribirPC = null; }
     const visitas = await getDocs(collection(db, "clientes", id, "visitas"));
+    const promosC = await getDocs(collection(db, "clientes", id, "promos"));
     const lote = writeBatch(db);
     visitas.forEach(v => lote.delete(v.ref));
+    promosC.forEach(p => lote.delete(p.ref));
     lote.delete(doc(db, "clientes", id));
     await lote.commit();
     actual = null; actualDatos = null;
@@ -452,8 +491,130 @@ $("aBorrar").addEventListener("click", async () => {
 
 $("btnCerrarDetalle").addEventListener("click", () => {
   if (desuscribir) desuscribir();
+  if (desuscribirPC) { desuscribirPC(); desuscribirPC = null; }
   actual = null;
   $("detalle").classList.add("hidden");
+});
+
+// ---------- Promociones ----------
+function itemPromo(p, acciones) {
+  const div = document.createElement("div");
+  div.className = "promo" + (p.activa === false ? " pausada" : "");
+  div.innerHTML = `<b>${escapar(p.titulo)}${p.activa === false ? " · <span style='color:var(--muted)'>pausada</span>" : ""}</b>` +
+    (p.detalle ? `<span>${escapar(p.detalle)}</span>` : "");
+  const fila = document.createElement("div");
+  fila.className = "promo-acc";
+  acciones.forEach(([texto, clase, fn]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "btn " + clase; b.textContent = texto;
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try { await fn(); } catch (ex) { console.error(ex); alert("No se pudo guardar. Intenta de nuevo."); }
+      b.disabled = false;
+    });
+    fila.appendChild(b);
+  });
+  div.appendChild(fila);
+  return div;
+}
+
+function escucharPromosGenerales() {
+  onSnapshot(collection(db, "promos"), (snap) => {
+    const el = $("listaPromos");
+    el.innerHTML = "";
+    if (snap.empty) { el.innerHTML = '<span class="muted">Todavía no hay promociones. Agrega la primera aquí abajo.</span>'; return; }
+    snap.docs
+      .sort((a, b) => (b.data().creado?.seconds || 0) - (a.data().creado?.seconds || 0))
+      .forEach(d => {
+        const p = d.data();
+        el.appendChild(itemPromo(p, [
+          [p.activa === false ? "Activar" : "Pausar", "btn-ghost", () => updateDoc(d.ref, { activa: p.activa === false })],
+          ["Borrar", "btn-peligro", async () => { if (confirm(`¿Borrar la promo "${p.titulo}"?`)) await deleteDoc(d.ref); }]
+        ]));
+      });
+  }, (ex) => { console.error(ex); $("listaPromos").innerHTML = '<span class="muted">No se pudo cargar.</span>'; });
+}
+
+$("formPromo").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const titulo = $("pTitulo").value.trim(), detalle = $("pDetalle").value.trim();
+  $("pAviso").classList.add("hidden");
+  if (!titulo) { $("pAviso").textContent = "Escribe el título de la promoción."; $("pAviso").classList.remove("hidden"); return; }
+  try {
+    await addDoc(collection(db, "promos"), { titulo, detalle, activa: true, creado: serverTimestamp(), por: auth.currentUser?.email || "" });
+    $("formPromo").reset();
+  } catch (ex) {
+    console.error(ex);
+    $("pAviso").textContent = "No se pudo guardar. Revisa que hayas actualizado las reglas de Firestore.";
+    $("pAviso").classList.remove("hidden");
+  }
+});
+
+let desuscribirPC = null;
+function escucharPromosCliente(id) {
+  if (desuscribirPC) desuscribirPC();
+  desuscribirPC = onSnapshot(collection(db, "clientes", id, "promos"), (snap) => {
+    const el = $("dPromos");
+    el.innerHTML = "";
+    if (snap.empty) { el.innerHTML = '<span class="muted" style="font-size:14px">Sin promos personales.</span>'; return; }
+    snap.docs
+      .sort((a, b) => (b.data().creado?.seconds || 0) - (a.data().creado?.seconds || 0))
+      .forEach(d => {
+        const p = d.data();
+        el.appendChild(itemPromo(p, [
+          ["Quitar", "btn-peligro", async () => { if (confirm(`¿Quitarle la promo "${p.titulo}"?`)) await deleteDoc(d.ref); }]
+        ]));
+      });
+  }, (ex) => console.error(ex));
+}
+
+$("formPromoCliente").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!actual) return;
+  const titulo = $("pcTitulo").value.trim(), detalle = $("pcDetalle").value.trim();
+  if (!titulo) { $("pcTitulo").focus(); return; }
+  try {
+    await addDoc(collection(db, "clientes", actual, "promos"), { titulo, detalle, activa: true, creado: serverTimestamp(), por: auth.currentUser?.email || "" });
+    $("formPromoCliente").reset();
+    $("dMsg").textContent = "Promo agregada ✓ Ya le aparece en su tarjeta.";
+    $("dMsg").classList.remove("hidden");
+  } catch (ex) {
+    console.error(ex);
+    alert("No se pudo guardar. Revisa que hayas actualizado las reglas de Firestore.");
+  }
+});
+
+// ---------- Premios y cumpleaños ----------
+function aplicarConfig(cfg) {
+  if (cfg.premioMitad) MITAD.texto = cfg.premioMitad;
+  if (cfg.premioFinal) FIN.texto = cfg.premioFinal;
+  if (cfg.promoCumple) NEGOCIO.promoCumple = cfg.promoCumple;
+  $("cMitad").value = MITAD.texto;
+  $("cFinal").value = FIN.texto;
+  $("cCumple").value = NEGOCIO.promoCumple;
+  textoBotones();
+  if (actualDatos) pintarCliente(actualDatos);
+}
+
+function escucharConfig() {
+  aplicarConfig({});
+  onSnapshot(doc(db, "config", "negocio"), (s) => { if (s.exists()) aplicarConfig(s.data()); }, (ex) => console.error(ex));
+}
+
+$("formConfig").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const premioMitad = $("cMitad").value.trim(), premioFinal = $("cFinal").value.trim(), promoCumple = $("cCumple").value.trim();
+  const aviso = $("cAviso");
+  if (!premioMitad || !premioFinal || !promoCumple) {
+    aviso.className = "aviso error"; aviso.textContent = "Llena los tres campos."; return;
+  }
+  try {
+    await setDoc(doc(db, "config", "negocio"), { premioMitad, premioFinal, promoCumple, actualizado: serverTimestamp() }, { merge: true });
+    aviso.className = "aviso ok"; aviso.textContent = "Guardado ✓ Ya se ve en las tarjetas de los clientes.";
+  } catch (ex) {
+    console.error(ex);
+    aviso.className = "aviso error"; aviso.textContent = "No se pudo guardar. Revisa que hayas actualizado las reglas de Firestore.";
+  }
 });
 
 // ---------- Sesión ----------
@@ -477,6 +638,11 @@ if (!configurado) {
     }
     vista("vistaPanel");
     cargarListas();
+    if (!window.__escuchando) {
+      window.__escuchando = true;
+      escucharPromosGenerales();
+      escucharConfig();
+    }
   });
 }
 </script>

@@ -101,7 +101,7 @@
   .card.promo{background:var(--gold);color:#0D0E10;border-color:var(--gold)}
   .card.promo p{color:#0D0E10;font-weight:500}
   .tag{font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
-  .card.promo .display{font-size:40px}
+  .card.promo .display{font-size:36px;overflow-wrap:anywhere}
 
   /* Lealtad */
   .loyalty{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:40px;display:flex;flex-wrap:wrap;align-items:center;gap:32px}
@@ -176,6 +176,7 @@
     </a>
     <nav class="links" aria-label="Principal">
       <a href="#servicios">Servicios</a>
+      <a href="#promociones" id="navPromos">Promos</a>
       <a href="#lealtad">Tarjeta</a>
       <a href="#galeria">Galería</a>
       <a href="#ubicacion">Ubicación</a>
@@ -254,9 +255,19 @@
         <p>Corte de cabello, ceja, pigmento y exfoliante.</p>
         <div class="price">$199</div>
       </article>
+    </div>
+  </section>
+
+  <section id="promociones" class="wrap block" style="padding-top:40px">
+    <div class="sec-head">
+      <h2 class="display">Promociones</h2>
+      <p>Las cambiamos seguido, ¡pendiente!</p>
+    </div>
+    <!-- Estas promos se reemplazan solas con las que se agregan desde el panel de admin -->
+    <div class="grid-3" id="listaPromosWeb">
       <article class="card promo">
-        <div class="tag">Promo de la semana</div>
-        <div class="display">Miércoles<br>cortes a $100</div>
+        <div class="tag">Promo</div>
+        <div class="display">Miércoles: cortes a $100</div>
         <p>Todos los miércoles.</p>
       </article>
     </div>
@@ -275,8 +286,9 @@
         <div class="stamp">1</div><div class="stamp">2</div><div class="stamp">3</div><div class="stamp">4</div><div class="stamp win">5°</div>
         <div class="stamp">6</div><div class="stamp">7</div><div class="stamp">8</div><div class="stamp">9</div><div class="stamp win">10°</div>
         <div class="rewards">
-          <div><b>5° corte:</b> facial gratis</div>
-          <div><b>10° corte:</b> [PREMIO]</div>
+          <div><b>5° corte:</b> <span id="webMitad">facial gratis</span></div>
+          <div><b>10° corte:</b> <span id="webFinal">[PREMIO]</span></div>
+          <div><b>Cumpleaños:</b> <span id="webCumple">regalo especial</span></div>
         </div>
       </div>
     </div>
@@ -342,5 +354,40 @@
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
 </a>
 
+<script type="module">
+// Promociones y premios en vivo desde el panel de admin
+import { db, configurado, escapar } from "./firebase.js";
+import { NEGOCIO } from "./firebase-config.js";
+import { collection, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+
+function pintarPromos(lista) {
+  const seccion = $("promociones"), nav = $("navPromos");
+  if (!lista.length) { seccion.hidden = true; nav.hidden = true; return; }
+  seccion.hidden = false; nav.hidden = false;
+  $("listaPromosWeb").innerHTML = lista.map(p =>
+    `<article class="card promo"><div class="tag">Promo</div>` +
+    `<div class="display">${escapar(p.titulo)}</div>` +
+    (p.detalle ? `<p>${escapar(p.detalle)}</p>` : "") + `</article>`).join("");
+}
+
+if (configurado) {
+  onSnapshot(collection(db, "promos"), (snap) => {
+    if (snap.empty) { pintarPromos(NEGOCIO.promociones); return; }
+    pintarPromos(snap.docs
+      .map(d => d.data())
+      .filter(p => p.activa !== false)
+      .sort((a, b) => (b.creado?.seconds || 0) - (a.creado?.seconds || 0)));
+  }, (ex) => console.error(ex));
+
+  onSnapshot(doc(db, "config", "negocio"), (snap) => {
+    const cfg = snap.exists() ? snap.data() : {};
+    $("webMitad").textContent = (cfg.premioMitad || NEGOCIO.premioMitad.texto).toLowerCase();
+    $("webFinal").textContent = (cfg.premioFinal || NEGOCIO.premioFinal.texto).toLowerCase();
+    $("webCumple").textContent = (cfg.promoCumple || NEGOCIO.promoCumple).toLowerCase();
+  }, (ex) => console.error(ex));
+}
+</script>
 </body>
 </html>
