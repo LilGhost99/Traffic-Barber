@@ -46,7 +46,7 @@
   .logo-c{display:flex;flex-direction:column;align-items:center;color:var(--gold);text-align:center}
   .logo-c .razors{width:42%;max-width:200px;height:auto}
   .logo-c .word{font-family:'Pinyon Script',cursive;font-size:clamp(84px,11vw,140px);line-height:1;margin-top:4px}
-  .logo-c .barber{display:flex;align-items:center;justify-content:center;gap:16px;width:100%;margin-top:-6px}
+  .logo-c .barber{display:flex;align-items:center;justify-content:center;gap:16px;width:100%;margin-top:10px}
   .logo-c .barber span{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:clamp(30px,4vw,44px);letter-spacing:.42em;padding-left:.42em;line-height:1}
   .logo-c .barber i{height:2px;flex:1;max-width:80px;background:var(--gold)}
   .logo-c .place{margin-top:16px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:15px;letter-spacing:.36em;padding-left:.36em;color:var(--gold-soft)}
@@ -153,6 +153,9 @@
   .float:hover{transform:scale(1.08);color:#0D0E10}
 
   @media (max-width:640px){
+    .gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .shot{font-size:12px;padding:8px;text-align:center}
+    .fb-band{padding:24px}
     .links a:not(.btn){display:none}
     .hero{padding-top:44px}
     .loyalty,.visit-card{padding:24px}
@@ -208,7 +211,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
           Agenda por WhatsApp
         </a>
-        <a class="btn btn-ghost" href="https://www.google.com/maps/place/?q=place_id:ChIJnW-ZsGyh0YURKsS65CJwEzI" target="_blank" rel="noopener">
+        <a class="btn btn-ghost" href="https://www.google.com/maps/search/?api=1&amp;query=TB%20Barber%20shop%20Real%20de%20Toledo%20Pachuca&amp;query_place_id=ChIJnW-ZsGyh0YURKsS65CJwEzI" target="_blank" rel="noopener">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
           Cómo llegar
         </a>
@@ -343,7 +346,7 @@
           <div>Lunes a sábado · 11:30 a 22:00<br><span>Domingo cerrado</span></div>
         </div>
         <div class="actions" style="margin-top:4px">
-          <a class="btn btn-primary" href="https://www.google.com/maps/place/?q=place_id:ChIJnW-ZsGyh0YURKsS65CJwEzI" target="_blank" rel="noopener">Abrir en Google Maps</a>
+          <a class="btn btn-primary" href="https://www.google.com/maps/search/?api=1&amp;query=TB%20Barber%20shop%20Real%20de%20Toledo%20Pachuca&amp;query_place_id=ChIJnW-ZsGyh0YURKsS65CJwEzI" target="_blank" rel="noopener">Abrir en Google Maps</a>
           <a class="btn btn-ghost" href="tel:+525573794461">Llamar</a>
         </div>
       </div>

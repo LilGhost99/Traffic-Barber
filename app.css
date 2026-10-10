@@ -132,3 +132,7 @@ textarea:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:var
 .barra-tip{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:var(--text);margin-bottom:4px;opacity:0;transition:opacity .15s ease}
 .barra-col.actual .barra-tip,.barra-col:hover .barra-tip,.barra-col:focus .barra-tip{opacity:1}
 #grafica + .aviso,#grafica{margin-bottom:28px}
+
+/* Que la barra de pestañas no tape lo que se abre */
+#detalle,#cajaNuevo{scroll-margin-top:84px}
+.tarjeta .sub{letter-spacing:.04em}

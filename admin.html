@@ -129,7 +129,7 @@
         <button class="btn btn-ghost btn-block" type="button" id="aQuitar">Quitar último sello</button>
         <a class="btn btn-ghost btn-block" id="aWhats" target="_blank" rel="noopener">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
-          Mandarle su tarjeta por WhatsApp
+          Mandar su tarjeta por WhatsApp
         </a>
         <button class="btn btn-block" type="button" id="aBorrar" style="background:transparent;border:2px solid rgba(229,103,90,.6);color:#F2B1A8">Borrar cliente</button>
       </div>
@@ -344,13 +344,12 @@ function pintarCumples() {
   if (!lista.length) { el.innerHTML = '<span class="muted">Nadie cumple años este mes.</span>'; return; }
   lista.forEach(c => {
     const fila = document.createElement("div");
-    fila.style.cssText = "display:flex;gap:8px;align-items:stretch";
+    fila.style.cssText = "display:grid;gap:6px";
     const item = itemCliente(c.id, c);
-    item.style.flex = "1";
     const felicitar = document.createElement("a");
     felicitar.className = "btn btn-ghost btn-sm";
     felicitar.target = "_blank"; felicitar.rel = "noopener";
-    felicitar.textContent = "🎂 Felicitar";
+    felicitar.textContent = `🎂 Felicitar a ${c.nombre.split(" ")[0]} por WhatsApp`;
     felicitar.setAttribute("aria-label", `Felicitar a ${c.nombre} por WhatsApp`);
     const link = new URL("tarjeta.html?id=" + encodeURIComponent(c.id), location.href).href;
     felicitar.href = `https://wa.me/52${c.telefono}?text=` + encodeURIComponent(
