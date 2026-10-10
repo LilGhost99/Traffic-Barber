@@ -51,6 +51,15 @@
 
   <!-- ====== PANEL ====== -->
   <section id="vistaPanel" class="hidden">
+    <nav class="tabs" role="tablist" aria-label="Secciones del panel">
+      <button class="tab-btn" type="button" role="tab" data-tab="sellar" aria-selected="true">Sellar</button>
+      <button class="tab-btn" type="button" role="tab" data-tab="clientes" aria-selected="false">Clientes</button>
+      <button class="tab-btn" type="button" role="tab" data-tab="promos" aria-selected="false">Promos</button>
+      <button class="tab-btn" type="button" role="tab" data-tab="numeros" aria-selected="false">Números</button>
+    </nav>
+
+    <!-- ===== Sellar visita ===== -->
+    <div id="tab-sellar" class="tab" role="tabpanel">
     <h1 class="display" style="font-size:44px">Sellar <span class="script" style="display:inline;font-size:1em">visita</span></h1>
 
     <div class="box">
@@ -135,6 +144,40 @@
       </form>
     </div>
 
+    </div>
+
+    <!-- ===== Clientes ===== -->
+    <div id="tab-clientes" class="tab hidden" role="tabpanel">
+    <h1 class="display" style="font-size:44px">Tus <span class="script" style="display:inline;font-size:1em">clientes</span></h1>
+
+    <div class="box">
+      <label style="gap:0"><span class="hidden">Buscar por nombre o WhatsApp</span>
+        <input id="filtroClientes" type="search" placeholder="Buscar por nombre o WhatsApp" aria-label="Buscar por nombre o WhatsApp">
+      </label>
+      <div class="muted" id="cuentaClientes" style="font-size:14px;margin-top:10px">Cargando…</div>
+      <div id="listaTodos" class="lista"></div>
+      <button class="btn btn-ghost btn-block" type="button" id="btnCSV" style="margin-top:14px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        Descargar lista (Excel)
+      </button>
+    </div>
+
+    <div class="box">
+      <h2>Cumpleaños este mes</h2>
+      <div id="listaCumple" class="lista"><span class="muted">Cargando…</span></div>
+    </div>
+
+    <div class="box">
+      <h2>Clientes nuevos</h2>
+      <div id="listaNuevos" class="lista"><span class="muted">Cargando…</span></div>
+    </div>
+    </div>
+
+    <!-- ===== Promos ===== -->
+    <div id="tab-promos" class="tab hidden" role="tabpanel">
+    <h1 class="display" style="font-size:44px">Promos <span class="script" style="display:inline;font-size:1em">y premios</span></h1>
+    <p class="muted" style="font-size:14px;margin:8px 0 0">Las promos solo para un cliente se agregan desde su tarjeta, en <b>Sellar</b>.</p>
+
     <div class="box">
       <h2>Promociones para todos</h2>
       <p class="muted" style="margin:0 0 12px;font-size:14px;line-height:1.5">Aparecen al instante en la tarjeta de todos los clientes. Puedes pausarlas sin borrarlas.</p>
@@ -158,14 +201,22 @@
       <div id="cAviso" class="aviso ok hidden" role="status"></div>
     </div>
 
-    <div class="box">
-      <h2>Cumpleaños este mes</h2>
-      <div id="listaCumple" class="lista"><span class="muted">Cargando…</span></div>
     </div>
 
+    <!-- ===== Números ===== -->
+    <div id="tab-numeros" class="tab hidden" role="tabpanel">
+    <h1 class="display" style="font-size:44px">Tus <span class="script" style="display:inline;font-size:1em">números</span></h1>
+    <p class="muted" style="font-size:14px;margin:8px 0 0" id="numMes"></p>
+
+    <div class="kpis" id="kpis"></div>
+
     <div class="box">
-      <h2>Clientes nuevos</h2>
-      <div id="listaNuevos" class="lista"><span class="muted">Cargando…</span></div>
+      <h2>Visitas por mes</h2>
+      <p class="muted" style="margin:0 0 6px;font-size:14px">Sellos puestos en los últimos 6 meses. Toca una barra para ver el número.</p>
+      <div id="grafica" class="barras" role="list" aria-label="Visitas por mes, últimos 6 meses"></div>
+      <div id="avisoStats" class="aviso error hidden" role="alert"></div>
+    </div>
+    <button class="btn btn-ghost btn-block" type="button" id="btnRefrescar" style="margin-top:16px">Actualizar números</button>
     </div>
   </section>
 </main>
@@ -174,7 +225,7 @@
 import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, runTransaction, addDoc, serverTimestamp, writeBatch, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, runTransaction, addDoc, serverTimestamp, writeBatch, setDoc, updateDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = id => document.getElementById(id);
 const MAX = NEGOCIO.sellosPorTarjeta, MITAD = NEGOCIO.premioMitad, FIN = NEGOCIO.premioFinal;
@@ -236,16 +287,169 @@ function pintarLista(el, docs, vacio) {
   if (!docs.length) { el.innerHTML = `<span class="muted">${vacio}</span>`; return; }
   docs.forEach(d => el.appendChild(itemCliente(d.id, d.data())));
 }
+// ---------- Pestañas ----------
+let tabActual = "sellar";
+function irA(tab) {
+  tabActual = tab;
+  document.querySelectorAll(".tab-btn").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("hidden", t.id !== "tab-" + tab));
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (tab === "clientes") cargarListas();
+  if (tab === "numeros") cargarNumeros();
+}
+document.querySelectorAll(".tab-btn").forEach(b => b.addEventListener("click", () => irA(b.dataset.tab)));
+
+// ---------- Clientes (se cargan todos; para una barbería son pocos) ----------
+let clientes = [];   // [{ id, ...datos }]
+const segundos = (t) => (t && t.seconds) || 0;
+
 async function cargarListas() {
   try {
-    const nuevos = await getDocs(query(collection(db, "clientes"), orderBy("creado", "desc"), limit(15)));
-    pintarLista($("listaNuevos"), nuevos.docs, "Todavía no hay clientes registrados.");
-  } catch (ex) { console.error(ex); $("listaNuevos").innerHTML = '<span class="muted">No se pudo cargar.</span>'; }
+    const snap = await getDocs(collection(db, "clientes"));
+    clientes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (ex) {
+    console.error(ex);
+    ["listaTodos","listaNuevos","listaCumple"].forEach(i => $(i).innerHTML = '<span class="muted">No se pudo cargar.</span>');
+    return;
+  }
+  pintarTodos();
+  const nuevos = [...clientes].sort((a, b) => segundos(b.creado) - segundos(a.creado)).slice(0, 15);
+  pintarListaObjetos($("listaNuevos"), nuevos, "Todavía no hay clientes registrados.");
+  pintarCumples();
+  if (tabActual === "numeros") pintarNumeros();
+}
+
+function pintarListaObjetos(el, lista, vacio) {
+  el.innerHTML = "";
+  if (!lista.length) { el.innerHTML = `<span class="muted">${vacio}</span>`; return; }
+  lista.forEach(c => el.appendChild(itemCliente(c.id, c)));
+}
+
+function pintarTodos() {
+  const f = $("filtroClientes").value.trim().toLowerCase();
+  const lista = clientes
+    .filter(c => !f || (c.nombre || "").toLowerCase().includes(f) || (c.telefono || "").includes(f))
+    .sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"));
+  $("cuentaClientes").textContent = f
+    ? `${lista.length} de ${clientes.length} clientes`
+    : `${clientes.length} cliente${clientes.length === 1 ? "" : "s"} registrado${clientes.length === 1 ? "" : "s"}`;
+  pintarListaObjetos($("listaTodos"), lista, f ? "Nadie coincide con esa búsqueda." : "Todavía no hay clientes registrados.");
+}
+$("filtroClientes").addEventListener("input", pintarTodos);
+
+function pintarCumples() {
+  const el = $("listaCumple");
+  const lista = clientes.filter(c => esMesDeCumple(c.cumple)).sort((a, b) => (a.cumple || "").localeCompare(b.cumple || ""));
+  el.innerHTML = "";
+  if (!lista.length) { el.innerHTML = '<span class="muted">Nadie cumple años este mes.</span>'; return; }
+  lista.forEach(c => {
+    const fila = document.createElement("div");
+    fila.style.cssText = "display:flex;gap:8px;align-items:stretch";
+    const item = itemCliente(c.id, c);
+    item.style.flex = "1";
+    const felicitar = document.createElement("a");
+    felicitar.className = "btn btn-ghost btn-sm";
+    felicitar.target = "_blank"; felicitar.rel = "noopener";
+    felicitar.textContent = "🎂 Felicitar";
+    felicitar.setAttribute("aria-label", `Felicitar a ${c.nombre} por WhatsApp`);
+    const link = new URL("tarjeta.html?id=" + encodeURIComponent(c.id), location.href).href;
+    felicitar.href = `https://wa.me/52${c.telefono}?text=` + encodeURIComponent(
+      `¡Feliz cumpleaños, ${c.nombre}! 🎂 De parte de Traffic Barber, este mes tu regalo es: ${NEGOCIO.promoCumple}. Te esperamos. Tu tarjeta: ${link}`);
+    fila.appendChild(item); fila.appendChild(felicitar);
+    el.appendChild(fila);
+  });
+}
+
+// Descargar la lista para Excel (CSV con acentos)
+$("btnCSV").addEventListener("click", () => {
+  if (!clientes.length) { alert("Todavía no hay clientes para descargar."); return; }
+  const fecha = t => t && t.seconds ? new Date(t.seconds * 1000).toLocaleDateString("es-MX") : "";
+  const celda = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const filas = [["Nombre","WhatsApp","Cumpleaños","Sellos","Tarjetas completas","Premio 5° entregado","Registrado","Última visita"]];
+  [...clientes].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es")).forEach(c => filas.push([
+    c.nombre, c.telefono, cumpleBonito(c.cumple), c.sellos || 0, c.tarjetas || 0,
+    c.facialCanjeado ? "Sí" : "No", fecha(c.creado), fecha(c.ultimaVisita)
+  ]));
+  const csv = "﻿" + filas.map(f => f.map(celda).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `clientes-traffic-barber-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+});
+
+// ---------- Números ----------
+const MESES_CORTOS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const claveMes = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+async function sumarStat(campo, cantidad) {
+  // Contador mensual; si falla (reglas sin actualizar) no detiene el sello
+  try { await setDoc(doc(db, "stats", claveMes()), { [campo]: increment(cantidad) }, { merge: true }); }
+  catch (ex) { console.warn("No se pudo guardar la estadística", ex); }
+}
+
+let statsMeses = [];   // [{ etiqueta, visitas, premios }]
+let statsError = false;
+
+async function cargarNumeros() {
+  $("btnRefrescar").disabled = true;
+  if (!clientes.length) await cargarListas();
+  const hoy = new Date();
+  const meses = Array.from({ length: 6 }, (_, i) => new Date(hoy.getFullYear(), hoy.getMonth() - 5 + i, 1));
   try {
-    const mm = String(new Date().getMonth() + 1).padStart(2, "0");
-    const cumple = await getDocs(query(collection(db, "clientes"), where("cumple", ">=", mm + "-01"), where("cumple", "<=", mm + "-31"), orderBy("cumple")));
-    pintarLista($("listaCumple"), cumple.docs, "Nadie cumple años este mes.");
-  } catch (ex) { console.error(ex); $("listaCumple").innerHTML = '<span class="muted">No se pudo cargar.</span>'; }
+    const docs = await Promise.all(meses.map(m => getDoc(doc(db, "stats", claveMes(m)))));
+    statsMeses = docs.map((s, i) => {
+      const d = s.exists() ? s.data() : {};
+      return { etiqueta: MESES_CORTOS[meses[i].getMonth()], visitas: Math.max(0, d.visitas || 0), premios: (d.premios5 || 0) + (d.premios10 || 0) };
+    });
+    statsError = false;
+  } catch (ex) {
+    console.error(ex);
+    statsError = true;
+    statsMeses = meses.map(m => ({ etiqueta: MESES_CORTOS[m.getMonth()], visitas: 0, premios: 0 }));
+  }
+  pintarNumeros();
+  $("btnRefrescar").disabled = false;
+}
+$("btnRefrescar").addEventListener("click", () => { clientes = []; cargarNumeros(); });
+
+function pintarNumeros() {
+  const hoy = new Date();
+  const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).getTime() / 1000;
+  const hace30 = Date.now() / 1000 - 30 * 86400;
+  const esteMes = statsMeses[statsMeses.length - 1] || { visitas: 0, premios: 0 };
+  const nuevosMes = clientes.filter(c => segundos(c.creado) >= inicioMes).length;
+  const activos = clientes.filter(c => segundos(c.ultimaVisita) >= hace30).length;
+  const porEntregar = clientes.filter(c => ((c.sellos || 0) >= MITAD.en && !c.facialCanjeado) || (c.sellos || 0) >= FIN.en).length;
+  const cumpleaneros = clientes.filter(c => esMesDeCumple(c.cumple)).length;
+
+  $("numMes").textContent = `${MESES[hoy.getMonth()][0].toUpperCase() + MESES[hoy.getMonth()].slice(1)} ${hoy.getFullYear()} · se actualizan al sellar`;
+  const kpis = [
+    [esteMes.visitas, "Visitas selladas este mes"],
+    [clientes.length, "Clientes registrados"],
+    [nuevosMes, "Clientes nuevos este mes"],
+    [activos, "Vinieron en los últimos 30 días"],
+    [esteMes.premios, "Premios entregados este mes"],
+    [porEntregar, "Premios por entregar"],
+    [cumpleaneros, "Cumplen años este mes"]
+  ];
+  $("kpis").innerHTML = kpis.map(([n, t]) => `<div class="kpi"><b>${n}</b><span>${t}</span></div>`).join("");
+
+  const max = Math.max(1, ...statsMeses.map(m => m.visitas));
+  $("grafica").innerHTML = statsMeses.map((m, i) => {
+    const ultimo = i === statsMeses.length - 1;
+    const alto = Math.round((m.visitas / max) * 100);
+    return `<div class="barra-col${ultimo ? " actual" : ""}" role="listitem" tabindex="0" aria-label="${m.etiqueta}: ${m.visitas} visitas">` +
+      `<span class="barra-tip">${m.visitas}</span>` +
+      `<div class="barra" style="height:${m.visitas ? Math.max(alto, 3) : 0}%"></div>` +
+      `<span class="barra-mes">${m.etiqueta}</span></div>`;
+  }).join("");
+
+  const aviso = $("avisoStats");
+  if (statsError) {
+    aviso.textContent = "No se pudieron leer las visitas por mes. Revisa que hayas pegado las reglas nuevas en Firestore.";
+    aviso.classList.remove("hidden");
+  } else aviso.classList.add("hidden");
 }
 
 // ---------- Buscar ----------
@@ -369,6 +573,7 @@ $("formNuevo").addEventListener("submit", async (e) => {
 let actual = null, actualDatos = null, desuscribir = null;
 
 async function abrirCliente(id) {
+  if (tabActual !== "sellar") irA("sellar");
   $("resultados").innerHTML = "";
   $("avisoBuscar").classList.add("hidden");
   $("dMsg").classList.add("hidden");
@@ -427,6 +632,10 @@ async function accion(tipo, cambio, mensaje) {
       resultado = { ...s.data(), ...nuevo };
     });
     await addDoc(collection(db, "clientes", actual, "visitas"), { tipo, fecha: serverTimestamp(), por: auth.currentUser?.email || "" });
+    if (tipo === "sello") sumarStat("visitas", 1);
+    else if (tipo === "quitar") sumarStat("visitas", -1);
+    else if (tipo === "premio-" + MITAD.en) sumarStat("premios5", 1);
+    else if (tipo === "premio-" + FIN.en) sumarStat("premios10", 1);
     $("dMsg").textContent = typeof mensaje === "function" ? mensaje(resultado) : mensaje;
     $("dMsg").classList.remove("hidden");
     cargarListas();

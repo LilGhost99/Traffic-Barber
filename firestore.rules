@@ -53,6 +53,11 @@ service cloud.firestore {
       allow write: if esAdmin();
     }
 
+    // Números del negocio (visitas y premios por mes): solo el admin.
+    match /stats/{mes} {
+      allow read, write: if esAdmin();
+    }
+
     // Premios y regalo de cumpleaños: cualquiera los ve, solo el admin los cambia.
     match /config/{docId} {
       allow read: if true;
