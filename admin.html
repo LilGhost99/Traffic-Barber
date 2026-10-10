@@ -64,9 +64,41 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10"/></svg>
         Escanear QR de la tarjeta
       </button>
+      <button class="btn btn-ghost btn-block" type="button" id="btnNuevo" style="margin-top:10px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 13.3-6"/><path d="M19 15v6M16 18h6"/></svg>
+        Registrar cliente nuevo
+      </button>
       <div id="lector" class="hidden"></div>
       <div id="resultados" class="lista"></div>
       <div id="avisoBuscar" class="aviso error hidden" role="alert"></div>
+    </div>
+
+    <!-- Registrar cliente desde el panel -->
+    <div id="cajaNuevo" class="box hidden">
+      <h2>Cliente nuevo</h2>
+      <p class="muted" style="margin:0 0 14px;font-size:14px;line-height:1.5">Para clientes que no saben registrarse solos. Al terminar puedes sellarle la visita y mandarle su tarjeta por WhatsApp.</p>
+      <form id="formNuevo" novalidate>
+        <label>Nombre<input id="nNombre" maxlength="40" autocomplete="off" placeholder="Nombre del cliente"></label>
+        <label>WhatsApp<span class="hint">10 dígitos</span>
+          <input id="nTel" type="tel" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="7711234567">
+        </label>
+        <fieldset style="border:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
+          <legend style="font-weight:600;font-size:15px;padding:0;margin-bottom:6px">Cumpleaños</legend>
+          <div class="fila">
+            <label><span class="hint">Día</span><select id="nDia"></select></label>
+            <label><span class="hint">Mes</span><select id="nMes"></select></label>
+          </div>
+        </fieldset>
+        <label class="check">
+          <input id="nAcepto" type="checkbox">
+          <span>Le avisé al cliente que guardamos su nombre, WhatsApp y cumpleaños para su tarjeta, y está de acuerdo (<a href="privacidad.html" target="_blank" rel="noopener">aviso de privacidad</a>).</span>
+        </label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <button class="btn btn-ghost" type="button" id="nCancelar">Cancelar</button>
+          <button class="btn btn-primary" type="submit" id="nGuardar">Crear tarjeta</button>
+        </div>
+      </form>
+      <div id="nAviso" class="aviso error hidden" role="alert"></div>
     </div>
 
     <!-- Detalle del cliente -->
@@ -108,7 +140,7 @@
 </main>
 
 <script type="module">
-import { db, auth, configurado, esMesDeCumple, cumpleBonito, escapar, pintarSellos } from "./firebase.js";
+import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, runTransaction, addDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -228,6 +260,76 @@ async function detenerLector() {
   $("btnEscanear").lastChild.textContent = " Escanear QR de la tarjeta";
 }
 
+// ---------- Registrar cliente desde el panel ----------
+$("nDia").innerHTML = '<option value="">Día</option>' + Array.from({length:31}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join("");
+$("nMes").innerHTML = '<option value="">Mes</option>' + MESES.map((m, i) => `<option value="${i+1}">${m[0].toUpperCase() + m.slice(1)}</option>`).join("");
+$("nTel").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
+
+function cerrarNuevo() {
+  $("formNuevo").reset();
+  $("nAviso").classList.add("hidden");
+  $("cajaNuevo").classList.add("hidden");
+}
+$("btnNuevo").addEventListener("click", () => {
+  const caja = $("cajaNuevo");
+  caja.classList.toggle("hidden");
+  if (!caja.classList.contains("hidden")) {
+    const tel = $("buscarTel").value.trim();
+    if (/^\d{10}$/.test(tel)) $("nTel").value = tel;
+    caja.scrollIntoView({ behavior: "smooth", block: "start" });
+    $("nNombre").focus();
+  }
+});
+$("nCancelar").addEventListener("click", cerrarNuevo);
+
+$("formNuevo").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const aviso = $("nAviso");
+  aviso.className = "aviso error hidden";
+  const nombre = $("nNombre").value.trim();
+  const telefono = $("nTel").value.trim();
+  const d = Number($("nDia").value), m = Number($("nMes").value);
+  let problema = "";
+  if (!nombre) problema = "Escribe el nombre del cliente.";
+  else if (!/^\d{10}$/.test(telefono)) problema = "El WhatsApp debe tener 10 dígitos.";
+  else if (!d || !m) problema = "Elige el día y mes de su cumpleaños.";
+  else if (!$("nAcepto").checked) problema = "Confirma que le avisaste al cliente sobre sus datos.";
+  if (problema) { aviso.textContent = problema; aviso.classList.remove("hidden"); return; }
+
+  const btn = $("nGuardar");
+  btn.disabled = true; btn.textContent = "Creando…";
+  try {
+    const existe = await getDocs(query(collection(db, "clientes"), where("telefono", "==", telefono)));
+    if (!existe.empty) {
+      const otro = existe.docs[0];
+      aviso.innerHTML = `Ya hay un cliente con ese número: <b>${escapar(otro.data().nombre)}</b>. `;
+      const abrir = document.createElement("button");
+      abrir.type = "button"; abrir.className = "btn btn-ghost btn-sm"; abrir.style.marginTop = "10px";
+      abrir.textContent = "Abrir su tarjeta";
+      abrir.addEventListener("click", () => { cerrarNuevo(); abrirCliente(otro.id); });
+      aviso.appendChild(abrir);
+      aviso.classList.remove("hidden");
+    } else {
+      const cumple = String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+      const ref = await addDoc(collection(db, "clientes"), {
+        nombre, telefono, cumple,
+        sellos: 0, facialCanjeado: false, tarjetas: 0,
+        creado: serverTimestamp()
+      });
+      cerrarNuevo();
+      await abrirCliente(ref.id);
+      $("dMsg").textContent = "Tarjeta creada ✓ Séllale la visita de hoy y mándale su tarjeta por WhatsApp.";
+      $("dMsg").classList.remove("hidden");
+      cargarListas();
+    }
+  } catch (ex) {
+    console.error(ex);
+    aviso.textContent = "No se pudo crear la tarjeta. Revisa la conexión e intenta de nuevo.";
+    aviso.classList.remove("hidden");
+  }
+  btn.disabled = false; btn.textContent = "Crear tarjeta";
+});
+
 // ---------- Detalle y acciones ----------
 let actual = null, actualDatos = null, desuscribir = null;
 
@@ -255,7 +357,7 @@ function pintarCliente(c) {
   else cum.classList.add("hidden");
 
   let estado = `${s} de ${MAX} sellos.`;
-  if (s >= MITAD.en && !c.facialCanjeado) estado += ` <b>Tiene pendiente: ${escapar(MITAD.texto)}.</b>`;
+  if (s >= MITAD.en && !c.facialCanjeado) estado += ` <b>Entrégale hoy: ${escapar(MITAD.texto.toLowerCase())}.</b>`;
   if (s >= FIN.en) estado += ` <b>Tarjeta completa: entrega ${escapar(FIN.texto)}.</b>`;
   $("dEstado").innerHTML = estado;
 
@@ -265,8 +367,12 @@ function pintarCliente(c) {
 
   $("aSellar").disabled = s >= MAX;
   $("aQuitar").disabled = s <= 0;
-  $("aFacial").classList.toggle("hidden", !(s >= MITAD.en && !c.facialCanjeado));
-  $("aPremio").classList.toggle("hidden", s < FIN.en);
+  const tocaFacial = s >= MITAD.en && !c.facialCanjeado;
+  const tocaPremio = s >= FIN.en;
+  $("aFacial").classList.toggle("hidden", !tocaFacial);
+  $("aFacial").disabled = !tocaFacial;
+  $("aPremio").classList.toggle("hidden", !tocaPremio);
+  $("aPremio").disabled = !tocaPremio;
 }
 
 async function accion(tipo, cambio, mensaje) {
@@ -275,15 +381,17 @@ async function accion(tipo, cambio, mensaje) {
   botones.forEach(b => b.disabled = true);
   try {
     const ref = doc(db, "clientes", actual);
+    let resultado = null;
     await runTransaction(db, async (t) => {
       const s = await t.get(ref);
       if (!s.exists()) throw new Error("no existe");
       const nuevo = cambio(s.data());
       if (!nuevo) throw new Error("sin cambio");
       t.update(ref, nuevo);
+      resultado = { ...s.data(), ...nuevo };
     });
     await addDoc(collection(db, "clientes", actual, "visitas"), { tipo, fecha: serverTimestamp(), por: auth.currentUser?.email || "" });
-    $("dMsg").textContent = mensaje;
+    $("dMsg").textContent = typeof mensaje === "function" ? mensaje(resultado) : mensaje;
     $("dMsg").classList.remove("hidden");
     cargarListas();
   } catch (ex) {
@@ -296,7 +404,11 @@ async function accion(tipo, cambio, mensaje) {
 
 $("aSellar").addEventListener("click", () => accion("sello",
   c => (c.sellos || 0) < MAX ? { sellos: (c.sellos || 0) + 1, ultimaVisita: serverTimestamp() } : null,
-  "Visita sellada ✓"));
+  r => {
+    if (r.sellos >= FIN.en) return `Visita sellada ✓ ¡Tarjeta completa! Entrégale hoy: ${FIN.texto}.`;
+    if (r.sellos >= MITAD.en && !r.facialCanjeado) return `Visita sellada ✓ ¡Hoy le toca su ${MITAD.texto.toLowerCase()}!`;
+    return "Visita sellada ✓";
+  }));
 $("aQuitar").addEventListener("click", () => {
   if (!confirm("¿Quitar el último sello?")) return;
   accion("quitar",

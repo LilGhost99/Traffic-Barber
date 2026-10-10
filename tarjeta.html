@@ -211,7 +211,7 @@ function textoEstado(c) {
   if (s >= fin.en) return `¡Tarjeta completa! Reclama tu <b>${escapar(fin.texto)}</b> en tu próxima visita.`;
   let t = "";
   if (s < mitad.en) t = `Te faltan <b>${mitad.en - s}</b> sello${mitad.en - s === 1 ? "" : "s"} para tu <b>${escapar(mitad.texto)}</b>.`;
-  else if (!c.facialCanjeado) t = `¡Ya ganaste tu <b>${escapar(mitad.texto)}</b>! Pídelo en tu próxima visita.`;
+  else if (!c.facialCanjeado) t = `¡Hoy te toca tu <b>${escapar(mitad.texto)}</b>! Pídeselo al barbero en esta visita.`;
   else t = `Te faltan <b>${fin.en - s}</b> sello${fin.en - s === 1 ? "" : "s"} para tu <b>${escapar(fin.texto)}</b>.`;
   return t;
 }
