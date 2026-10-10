@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// Reglas de seguridad para la tarjeta de Traffic Barber.
+// Pégalas en Firebase Console → Firestore Database → Reglas → Publicar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Un admin es un usuario con sesión iniciada cuyo UID está en la colección "admins"
+    function esAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /clientes/{clienteId} {
+      // Cualquiera puede ver UNA tarjeta si tiene su link (el ID es largo y aleatorio).
+      allow get: if true;
+      // Solo el admin puede listar o buscar clientes.
+      allow list: if esAdmin();
+
+      // Registro: cualquiera puede crear SU tarjeta, pero siempre empieza en 0 sellos.
+      allow create: if request.resource.data.keys().hasOnly(
+                         ['nombre','telefono','cumple','sellos','facialCanjeado','tarjetas','creado'])
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() > 0
+                    && request.resource.data.nombre.size() <= 40
+                    && request.resource.data.telefono is string
+                    && request.resource.data.telefono.matches('^[0-9]{10}$')
+                    && request.resource.data.cumple is string
+                    && request.resource.data.cumple.matches('^[0-1][0-9]-[0-3][0-9]$')
+                    && request.resource.data.sellos == 0
+                    && request.resource.data.facialCanjeado == false
+                    && request.resource.data.tarjetas == 0
+                    && request.resource.data.creado == request.time;
+
+      // Solo el admin puede sellar, quitar sellos, entregar premios o borrar.
+      allow update, delete: if esAdmin();
+
+      // Historial de visitas: solo el admin.
+      match /visitas/{visitaId} {
+        allow read, write: if esAdmin();
+      }
+    }
+
+    // Cada admin solo puede comprobar su propio registro. Nadie puede escribir aquí desde la página.
+    match /admins/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+  }
+}

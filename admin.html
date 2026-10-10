@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel · Traffic Barber</title>
+<meta name="theme-color" content="#0D0E10">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Barlow+Condensed:ital,wght@0,800;1,900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="razor"><rect x="-92" y="-7" width="82" height="14" rx="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M-10,-10 L70,-13 Q86,-12 86,0 L86,4 Q86,9 78,9 L-10,9 Z" fill="currentColor"/><circle cx="-10" cy="0" r="4" fill="#121417"/></g>
+  <symbol id="razors" viewBox="0 0 200 120"><use href="#razor" transform="translate(100,66) rotate(-32)"/><use href="#razor" transform="translate(100,66) scale(-1,1) rotate(-32)"/></symbol>
+</defs></svg>
+
+<div class="pole" aria-hidden="true"></div>
+<div class="top">
+  <span class="brand">
+    <svg width="42" height="26" aria-hidden="true"><use href="#razors"/></svg>
+    <span class="name"><b>Traffic</b><small>BARBER</small></span>
+  </span>
+  <button class="btn btn-ghost btn-sm hidden" id="btnSalir" type="button">Cerrar sesión</button>
+</div>
+
+<main>
+  <div id="sinConfig" class="aviso error hidden">Falta conectar Firebase. Pega tu configuración en <b>firebase-config.js</b>.</div>
+
+  <!-- ====== LOGIN ====== -->
+  <section id="vistaLogin" class="hidden">
+    <h1 class="display">Panel<span class="script">del barbero</span></h1>
+    <div class="box">
+      <form id="formLogin">
+        <label>Correo<input id="correo" type="email" autocomplete="username" required></label>
+        <label>Contraseña<input id="clave" type="password" autocomplete="current-password" required></label>
+        <button class="btn btn-primary btn-block" type="submit" id="btnLogin">Entrar</button>
+      </form>
+      <div id="errorLogin" class="aviso error hidden" role="alert"></div>
+    </div>
+  </section>
+
+  <!-- ====== PANEL ====== -->
+  <section id="vistaPanel" class="hidden">
+    <h1 class="display" style="font-size:44px">Sellar <span class="script" style="display:inline;font-size:1em">visita</span></h1>
+
+    <div class="box">
+      <form id="formBuscar" class="buscar">
+        <label style="flex:1;gap:0"><span class="hidden">WhatsApp del cliente</span>
+          <input id="buscarTel" type="tel" inputmode="numeric" maxlength="10" placeholder="WhatsApp del cliente (10 dígitos)" aria-label="WhatsApp del cliente">
+        </label>
+        <button class="btn btn-primary btn-sm" type="submit">Buscar</button>
+      </form>
+      <button class="btn btn-ghost btn-block" type="button" id="btnEscanear" style="margin-top:10px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10"/></svg>
+        Escanear QR de la tarjeta
+      </button>
+      <div id="lector" class="hidden"></div>
+      <div id="resultados" class="lista"></div>
+      <div id="avisoBuscar" class="aviso error hidden" role="alert"></div>
+    </div>
+
+    <!-- Detalle del cliente -->
+    <div id="detalle" class="tarjeta hidden">
+      <div class="cab">
+        <div>
+          <div class="cliente" id="dNombre">—</div>
+          <div class="datos" id="dDatos"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button" id="btnCerrarDetalle" aria-label="Cerrar cliente">✕</button>
+      </div>
+      <div id="dCumple" class="aviso oro hidden"></div>
+      <div class="sellos" id="dSellos"></div>
+      <div class="estado" id="dEstado" aria-live="polite"></div>
+      <div class="acciones">
+        <button class="btn btn-primary btn-block" type="button" id="aSellar">+ Sellar visita</button>
+        <button class="btn btn-primary btn-block hidden" type="button" id="aFacial">Entregar premio del 5° corte</button>
+        <button class="btn btn-primary btn-block hidden" type="button" id="aPremio">Entregar premio final y empezar tarjeta nueva</button>
+        <button class="btn btn-ghost btn-block" type="button" id="aQuitar">Quitar último sello</button>
+      </div>
+      <div id="dMsg" class="aviso ok hidden" role="status"></div>
+    </div>
+
+    <div class="box">
+      <h2>Cumpleaños este mes</h2>
+      <div id="listaCumple" class="lista"><span class="muted">Cargando…</span></div>
+    </div>
+
+    <div class="box">
+      <h2>Clientes nuevos</h2>
+      <div id="listaNuevos" class="lista"><span class="muted">Cargando…</span></div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { db, auth, configurado, esMesDeCumple, cumpleBonito, escapar, pintarSellos } from "./firebase.js";
+import { NEGOCIO } from "./firebase-config.js";
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, runTransaction, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+const MAX = NEGOCIO.sellosPorTarjeta, MITAD = NEGOCIO.premioMitad, FIN = NEGOCIO.premioFinal;
+$("aFacial").textContent = `Entregar ${MITAD.texto.toLowerCase()} (${MITAD.en}° corte)`;
+
+function vista(v) {
+  ["vistaLogin","vistaPanel"].forEach(x => $(x).classList.toggle("hidden", x !== v));
+  $("btnSalir").classList.toggle("hidden", v !== "vistaPanel");
+}
+
+// ---------- Login ----------
+$("formLogin").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("errorLogin").classList.add("hidden");
+  $("btnLogin").disabled = true;
+  try {
+    await signInWithEmailAndPassword(auth, $("correo").value.trim(), $("clave").value);
+  } catch (ex) {
+    console.error(ex);
+    $("errorLogin").textContent = "Correo o contraseña incorrectos.";
+    $("errorLogin").classList.remove("hidden");
+  }
+  $("btnLogin").disabled = false;
+});
+$("btnSalir").addEventListener("click", () => signOut(auth));
+
+// ---------- Listas ----------
+function itemCliente(id, c) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "item";
+  b.innerHTML = `<div><b>${escapar(c.nombre)}</b><span>${escapar(c.telefono)} · 🎂 ${escapar(cumpleBonito(c.cumple))}</span></div><div class="n">${c.sellos || 0}/${MAX}</div>`;
+  b.addEventListener("click", () => abrirCliente(id));
+  return b;
+}
+function pintarLista(el, docs, vacio) {
+  el.innerHTML = "";
+  if (!docs.length) { el.innerHTML = `<span class="muted">${vacio}</span>`; return; }
+  docs.forEach(d => el.appendChild(itemCliente(d.id, d.data())));
+}
+async function cargarListas() {
+  try {
+    const nuevos = await getDocs(query(collection(db, "clientes"), orderBy("creado", "desc"), limit(15)));
+    pintarLista($("listaNuevos"), nuevos.docs, "Todavía no hay clientes registrados.");
+  } catch (ex) { console.error(ex); $("listaNuevos").innerHTML = '<span class="muted">No se pudo cargar.</span>'; }
+  try {
+    const mm = String(new Date().getMonth() + 1).padStart(2, "0");
+    const cumple = await getDocs(query(collection(db, "clientes"), where("cumple", ">=", mm + "-01"), where("cumple", "<=", mm + "-31"), orderBy("cumple")));
+    pintarLista($("listaCumple"), cumple.docs, "Nadie cumple años este mes.");
+  } catch (ex) { console.error(ex); $("listaCumple").innerHTML = '<span class="muted">No se pudo cargar.</span>'; }
+}
+
+// ---------- Buscar ----------
+$("buscarTel").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
+$("formBuscar").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const tel = $("buscarTel").value.trim();
+  $("avisoBuscar").classList.add("hidden");
+  $("resultados").innerHTML = "";
+  if (!/^\d{10}$/.test(tel)) { mostrarAviso("Escribe los 10 dígitos del WhatsApp."); return; }
+  try {
+    const r = await getDocs(query(collection(db, "clientes"), where("telefono", "==", tel)));
+    if (r.empty) { mostrarAviso("No hay ningún cliente con ese número. Pídele que se registre con el QR del mostrador."); return; }
+    if (r.size === 1) abrirCliente(r.docs[0].id);
+    else pintarLista($("resultados"), r.docs, "");
+  } catch (ex) { console.error(ex); mostrarAviso("No se pudo buscar. Revisa la conexión."); }
+});
+function mostrarAviso(t) { $("avisoBuscar").textContent = t; $("avisoBuscar").classList.remove("hidden"); }
+
+// ---------- Escanear ----------
+let lector = null;
+$("btnEscanear").addEventListener("click", async () => {
+  const caja = $("lector");
+  if (lector) { await detenerLector(); return; }
+  if (!window.Html5Qrcode) { mostrarAviso("No se pudo cargar el lector de QR."); return; }
+  caja.classList.remove("hidden");
+  $("btnEscanear").lastChild.textContent = " Cancelar escaneo";
+  lector = new Html5Qrcode("lector");
+  try {
+    await lector.start({ facingMode: "environment" }, { fps: 10, qrbox: 230 }, async (texto) => {
+      let id = texto;
+      try { id = new URL(texto).searchParams.get("id") || texto; } catch {}
+      await detenerLector();
+      abrirCliente(id);
+    });
+  } catch (ex) {
+    console.error(ex);
+    await detenerLector();
+    mostrarAviso("No se pudo abrir la cámara. Da permiso de cámara al navegador.");
+  }
+});
+async function detenerLector() {
+  try { if (lector) await lector.stop(); } catch {}
+  lector = null;
+  $("lector").classList.add("hidden");
+  $("lector").innerHTML = "";
+  $("btnEscanear").lastChild.textContent = " Escanear QR de la tarjeta";
+}
+
+// ---------- Detalle y acciones ----------
+let actual = null, actualDatos = null, desuscribir = null;
+
+async function abrirCliente(id) {
+  $("resultados").innerHTML = "";
+  $("avisoBuscar").classList.add("hidden");
+  $("dMsg").classList.add("hidden");
+  const snap = await getDoc(doc(db, "clientes", id)).catch(() => null);
+  if (!snap || !snap.exists()) { mostrarAviso("Ese QR no corresponde a ninguna tarjeta."); return; }
+  actual = id;
+  if (desuscribir) desuscribir();
+  desuscribir = onSnapshot(doc(db, "clientes", id), s => { if (s.exists()) pintarCliente(s.data()); });
+  $("detalle").classList.remove("hidden");
+  $("detalle").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function pintarCliente(c) {
+  actualDatos = c;
+  const s = c.sellos || 0;
+  $("dNombre").textContent = c.nombre;
+  $("dDatos").innerHTML = `<span>📱 ${escapar(c.telefono)}</span><span>🎂 ${escapar(cumpleBonito(c.cumple))}</span>${c.tarjetas ? `<span>Tarjetas completas: ${c.tarjetas}</span>` : ""}`;
+  pintarSellos($("dSellos"), s, NEGOCIO);
+  const cum = $("dCumple");
+  if (esMesDeCumple(c.cumple)) { cum.innerHTML = `🎂 Cumple este mes. Regalo: <b>${escapar(NEGOCIO.promoCumple)}</b>`; cum.classList.remove("hidden"); }
+  else cum.classList.add("hidden");
+
+  let estado = `${s} de ${MAX} sellos.`;
+  if (s >= MITAD.en && !c.facialCanjeado) estado += ` <b>Tiene pendiente: ${escapar(MITAD.texto)}.</b>`;
+  if (s >= FIN.en) estado += ` <b>Tarjeta completa: entrega ${escapar(FIN.texto)}.</b>`;
+  $("dEstado").innerHTML = estado;
+
+  $("aSellar").disabled = s >= MAX;
+  $("aQuitar").disabled = s <= 0;
+  $("aFacial").classList.toggle("hidden", !(s >= MITAD.en && !c.facialCanjeado));
+  $("aPremio").classList.toggle("hidden", s < FIN.en);
+}
+
+async function accion(tipo, cambio, mensaje) {
+  if (!actual) return;
+  const botones = ["aSellar","aFacial","aPremio","aQuitar"].map($);
+  botones.forEach(b => b.disabled = true);
+  try {
+    const ref = doc(db, "clientes", actual);
+    await runTransaction(db, async (t) => {
+      const s = await t.get(ref);
+      if (!s.exists()) throw new Error("no existe");
+      const nuevo = cambio(s.data());
+      if (!nuevo) throw new Error("sin cambio");
+      t.update(ref, nuevo);
+    });
+    await addDoc(collection(db, "clientes", actual, "visitas"), { tipo, fecha: serverTimestamp(), por: auth.currentUser?.email || "" });
+    $("dMsg").textContent = mensaje;
+    $("dMsg").classList.remove("hidden");
+    cargarListas();
+  } catch (ex) {
+    console.error(ex);
+    $("dMsg").textContent = "No se pudo guardar. Intenta de nuevo.";
+    $("dMsg").classList.remove("hidden");
+  }
+  if (actualDatos) pintarCliente(actualDatos);
+}
+
+$("aSellar").addEventListener("click", () => accion("sello",
+  c => (c.sellos || 0) < MAX ? { sellos: (c.sellos || 0) + 1, ultimaVisita: serverTimestamp() } : null,
+  "Visita sellada ✓"));
+$("aQuitar").addEventListener("click", () => {
+  if (!confirm("¿Quitar el último sello?")) return;
+  accion("quitar",
+    c => (c.sellos || 0) > 0 ? { sellos: (c.sellos || 0) - 1 } : null,
+    "Se quitó un sello.");
+});
+$("aFacial").addEventListener("click", () => accion("premio-" + MITAD.en,
+  c => ({ facialCanjeado: true }),
+  `${MITAD.texto}: entregado ✓`));
+$("aPremio").addEventListener("click", () => {
+  if (!confirm(`¿Entregar ${FIN.texto} y empezar una tarjeta nueva?`)) return;
+  accion("premio-" + FIN.en,
+    c => ({ sellos: 0, facialCanjeado: false, tarjetas: (c.tarjetas || 0) + 1 }),
+    "Premio entregado. Tarjeta nueva lista ✓");
+});
+$("btnCerrarDetalle").addEventListener("click", () => {
+  if (desuscribir) desuscribir();
+  actual = null;
+  $("detalle").classList.add("hidden");
+});
+
+// ---------- Sesión ----------
+if (!configurado) {
+  $("sinConfig").classList.remove("hidden");
+} else {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { vista("vistaLogin"); return; }
+    const esAdmin = await getDoc(doc(db, "admins", user.uid)).then(s => s.exists()).catch(() => false);
+    if (!esAdmin) {
+      await signOut(auth);
+      vista("vistaLogin");
+      $("errorLogin").textContent = "Esta cuenta no tiene permiso de administrador.";
+      $("errorLogin").classList.remove("hidden");
+      return;
+    }
+    vista("vistaPanel");
+    cargarListas();
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi tarjeta · Traffic Barber</title>
+<meta name="description" content="Tu tarjeta de cliente frecuente de Traffic Barber: junta sellos, ve promociones y recibe un regalo en tu cumpleaños.">
+<meta name="theme-color" content="#0D0E10">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Barlow+Condensed:ital,wght@0,800;1,900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="razor"><rect x="-92" y="-7" width="82" height="14" rx="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M-10,-10 L70,-13 Q86,-12 86,0 L86,4 Q86,9 78,9 L-10,9 Z" fill="currentColor"/><circle cx="-10" cy="0" r="4" fill="#121417"/></g>
+  <symbol id="razors" viewBox="0 0 200 120"><use href="#razor" transform="translate(100,66) rotate(-32)"/><use href="#razor" transform="translate(100,66) scale(-1,1) rotate(-32)"/></symbol>
+</defs></svg>
+
+<div class="pole" aria-hidden="true"></div>
+<div class="top">
+  <a class="brand" href="index.html" aria-label="Traffic Barber, inicio">
+    <svg width="42" height="26" aria-hidden="true"><use href="#razors"/></svg>
+    <span class="name"><b>Traffic</b><small>BARBER</small></span>
+  </a>
+  <a class="back" href="index.html">← Volver al sitio</a>
+</div>
+
+<main>
+  <div id="sinConfig" class="aviso error hidden">Falta conectar Firebase. Pega tu configuración en <b>firebase-config.js</b>.</div>
+  <div id="cargando" class="muted" style="padding:40px 0;text-align:center">Cargando…</div>
+
+  <!-- ====== REGISTRO ====== -->
+  <section id="vistaRegistro" class="hidden">
+    <h1 class="display">Tu tarjeta<span class="script">de cliente frecuente</span></h1>
+    <p class="lead">Regístrate en 30 segundos, junta sellos en cada visita y recibe un regalo en tu cumpleaños.</p>
+
+    <div class="box">
+      <form id="formRegistro" novalidate>
+        <label>Nombre
+          <input id="nombre" name="nombre" autocomplete="given-name" maxlength="40" required placeholder="Cómo te llamas">
+        </label>
+        <label>WhatsApp
+          <span class="hint">10 dígitos, para que te encontremos en la barbería</span>
+          <input id="telefono" name="telefono" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="10" required placeholder="7711234567">
+        </label>
+        <fieldset style="border:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
+          <legend style="font-weight:600;font-size:15px;padding:0;margin-bottom:6px">Tu cumpleaños <span class="hint" style="font-weight:400;font-size:13px;color:var(--muted)">· solo día y mes</span></legend>
+          <div class="fila">
+            <label><span class="hint">Día</span><select id="dia" required></select></label>
+            <label><span class="hint">Mes</span><select id="mes" required></select></label>
+          </div>
+        </fieldset>
+        <label class="check">
+          <input id="acepto" type="checkbox" required>
+          <span>Acepto el <a href="privacidad.html" target="_blank" rel="noopener">aviso de privacidad</a>. Usamos tus datos solo para tu tarjeta y promociones de la barbería.</span>
+        </label>
+        <button class="btn btn-primary btn-block" type="submit" id="btnRegistro">Crear mi tarjeta</button>
+      </form>
+      <div id="errorRegistro" class="aviso error hidden" role="alert"></div>
+    </div>
+    <p class="muted" style="font-size:14px;margin-top:18px">¿Ya tenías tarjeta y cambiaste de celular? Pídele al barbero que te la busque por tu número.</p>
+  </section>
+
+  <!-- ====== TARJETA ====== -->
+  <section id="vistaTarjeta" class="hidden">
+    <div id="avisoNueva" class="aviso ok hidden">¡Listo! Ya tienes tu tarjeta. Guarda esta página en tu pantalla de inicio para tenerla siempre a la mano.</div>
+    <div id="avisoCumple" class="aviso oro hidden"></div>
+
+    <div class="tarjeta">
+      <div class="cab">
+        <div>
+          <div class="cliente" id="tNombre">—</div>
+          <div class="sub" id="tSub">Cliente frecuente</div>
+        </div>
+        <div class="mini" aria-hidden="true">Traffic</div>
+      </div>
+      <div class="sellos" id="tSellos"></div>
+      <div class="estado" id="tEstado" aria-live="polite"></div>
+      <div class="qr-wrap">
+        <div class="qr" id="tQR" aria-label="Código QR de tu tarjeta"></div>
+        <p>Enséñale este código al barbero para que te <b style="color:var(--text)">selle tu visita</b>. Tu tarjeta se actualiza sola.</p>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>Promociones</h2>
+      <div class="promos" id="tPromos"></div>
+    </div>
+
+    <div style="display:grid;gap:10px;margin-top:20px">
+      <a class="btn btn-primary btn-block" id="tAgenda" target="_blank" rel="noopener">Agenda tu corte</a>
+      <button class="btn btn-ghost btn-block" type="button" id="tSalir">Esta no es mi tarjeta</button>
+    </div>
+  </section>
+</main>
+
+<footer class="pie">Traffic Barber · Real de Toledo, Pachuca · <a href="privacidad.html">Aviso de privacidad</a></footer>
+
+<script type="module">
+import { db, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos } from "./firebase.js";
+import { NEGOCIO } from "./firebase-config.js";
+import { collection, addDoc, doc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+const CLAVE = "tb_tarjeta_id";
+const mostrar = (vista) => {
+  $("cargando").classList.add("hidden");
+  ["vistaRegistro","vistaTarjeta"].forEach(v => $(v).classList.toggle("hidden", v !== vista));
+};
+
+function leerId() {
+  const url = new URLSearchParams(location.search).get("id");
+  if (url) return url;
+  try { return localStorage.getItem(CLAVE); } catch { return null; }
+}
+function guardarId(id) {
+  try { localStorage.setItem(CLAVE, id); } catch {}
+  history.replaceState(null, "", "?id=" + encodeURIComponent(id));
+}
+function borrarId() {
+  try { localStorage.removeItem(CLAVE); } catch {}
+  history.replaceState(null, "", location.pathname);
+}
+
+// ---------- Registro ----------
+function prepararRegistro() {
+  const dia = $("dia"), mes = $("mes");
+  dia.innerHTML = '<option value="">Día</option>' + Array.from({length:31}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join("");
+  mes.innerHTML = '<option value="">Mes</option>' + MESES.map((m, i) => `<option value="${i+1}">${m[0].toUpperCase() + m.slice(1)}</option>`).join("");
+  $("telefono").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
+
+  $("formRegistro").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = $("errorRegistro");
+    err.classList.add("hidden");
+    const nombre = $("nombre").value.trim();
+    const telefono = $("telefono").value.trim();
+    const d = Number(dia.value), m = Number(mes.value);
+    let problema = "";
+    if (!nombre) problema = "Escribe tu nombre.";
+    else if (!/^\d{10}$/.test(telefono)) problema = "Tu WhatsApp debe tener 10 dígitos.";
+    else if (!d || !m) problema = "Elige el día y mes de tu cumpleaños.";
+    else if (!$("acepto").checked) problema = "Necesitas aceptar el aviso de privacidad.";
+    if (problema) { err.textContent = problema; err.classList.remove("hidden"); return; }
+
+    const btn = $("btnRegistro");
+    btn.disabled = true; btn.textContent = "Creando tu tarjeta…";
+    try {
+      const cumple = String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+      const ref = await addDoc(collection(db, "clientes"), {
+        nombre, telefono, cumple,
+        sellos: 0, facialCanjeado: false, tarjetas: 0,
+        creado: serverTimestamp()
+      });
+      guardarId(ref.id);
+      $("avisoNueva").classList.remove("hidden");
+      abrirTarjeta(ref.id);
+    } catch (ex) {
+      console.error(ex);
+      err.textContent = "No pudimos crear tu tarjeta. Revisa tu conexión e intenta de nuevo.";
+      err.classList.remove("hidden");
+      btn.disabled = false; btn.textContent = "Crear mi tarjeta";
+    }
+  });
+}
+
+// ---------- Tarjeta ----------
+let qrHecho = false;
+let sellosPrevios = null;
+let desuscribir = null;
+
+function textoEstado(c) {
+  const s = c.sellos || 0, mitad = NEGOCIO.premioMitad, fin = NEGOCIO.premioFinal;
+  if (s >= fin.en) return `¡Tarjeta completa! Reclama tu <b>${escapar(fin.texto)}</b> en tu próxima visita.`;
+  let t = "";
+  if (s < mitad.en) t = `Te faltan <b>${mitad.en - s}</b> sello${mitad.en - s === 1 ? "" : "s"} para tu <b>${escapar(mitad.texto)}</b>.`;
+  else if (!c.facialCanjeado) t = `¡Ya ganaste tu <b>${escapar(mitad.texto)}</b>! Pídelo en tu próxima visita.`;
+  else t = `Te faltan <b>${fin.en - s}</b> sello${fin.en - s === 1 ? "" : "s"} para tu <b>${escapar(fin.texto)}</b>.`;
+  return t;
+}
+
+function abrirTarjeta(id) {
+  mostrar("vistaTarjeta");
+  if (desuscribir) desuscribir();
+  desuscribir = onSnapshot(doc(db, "clientes", id), (snap) => {
+    if (!snap.exists()) { borrarId(); mostrar("vistaRegistro"); return; }
+    const c = snap.data();
+    $("tNombre").textContent = c.nombre;
+    $("tSub").textContent = (c.tarjetas ? `Tarjeta #${c.tarjetas + 1} · ` : "") + "Cliente frecuente";
+    pintarSellos($("tSellos"), c.sellos || 0, NEGOCIO);
+    if (sellosPrevios !== null && (c.sellos || 0) > sellosPrevios) {
+      const nuevo = $("tSellos").children[(c.sellos || 1) - 1];
+      if (nuevo) nuevo.classList.add("nuevo");
+    }
+    sellosPrevios = c.sellos || 0;
+    $("tEstado").innerHTML = textoEstado(c);
+
+    const av = $("avisoCumple");
+    if (esMesDeCumple(c.cumple)) {
+      av.innerHTML = `🎂 ¡Este mes es tu cumpleaños (${cumpleBonito(c.cumple)})! Tu regalo: <b>${escapar(NEGOCIO.promoCumple)}</b>`;
+      av.classList.remove("hidden");
+    } else av.classList.add("hidden");
+
+    if (!qrHecho && window.QRCode) {
+      const url = location.origin + location.pathname + "?id=" + encodeURIComponent(id);
+      new QRCode($("tQR"), { text: url, width: 208, height: 208, colorDark: "#0D0E10", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
+      qrHecho = true;
+    }
+  }, (ex) => {
+    console.error(ex);
+    $("tEstado").textContent = "No pudimos cargar tu tarjeta. Revisa tu conexión.";
+  });
+}
+
+function pintarPromos() {
+  $("tPromos").innerHTML = NEGOCIO.promociones.map(p =>
+    `<div class="promo"><b>${escapar(p.titulo)}</b><span>${escapar(p.detalle)}</span></div>`).join("");
+  $("tAgenda").href = `https://wa.me/${NEGOCIO.whatsapp}?text=${encodeURIComponent("Hola, quiero agendar un corte")}`;
+  $("tSalir").addEventListener("click", () => {
+    if (!confirm("¿Salir de esta tarjeta en este celular? La tarjeta no se borra.")) return;
+    if (desuscribir) desuscribir();
+    borrarId(); location.reload();
+  });
+}
+
+// ---------- Inicio ----------
+if (!configurado) {
+  $("cargando").classList.add("hidden");
+  $("sinConfig").classList.remove("hidden");
+} else {
+  prepararRegistro();
+  pintarPromos();
+  const id = leerId();
+  if (id) { guardarId(id); abrirTarjeta(id); }
+  else mostrar("vistaRegistro");
+}
+</script>
+</body>
+</html>
