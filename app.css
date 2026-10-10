@@ -13,7 +13,7 @@ a{color:var(--gold)} a:hover{color:var(--gold-hi)}
 .brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--gold)}
 .brand .name{display:flex;flex-direction:column;align-items:center;line-height:1}
 .brand b{font-family:'Pinyon Script',cursive;font-weight:400;font-size:34px;line-height:.95}
-.brand small{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:11px;letter-spacing:.42em;padding-left:.42em}
+.brand small{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:11px;letter-spacing:.42em;padding-left:.42em;margin-top:6px}
 .top .back{font-size:14px;font-weight:600;color:var(--muted);text-decoration:none}
 .top .back:hover{color:var(--gold)}
 
