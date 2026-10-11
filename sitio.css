@@ -507,3 +507,6 @@
   .rc-s.premio{font-size:9px}
   .stamp.win{font-size:clamp(10px,2.8vw,13px);font-style:normal}
   .rc-logo{height:30px;width:auto;display:block}
+  /* Pasos del WiFi: el texto corre normal (antes cada negrita quedaba en su propia columna) */
+  .pasos li{display:block;position:relative;padding-left:42px;min-height:28px}
+  .pasos li::before{position:absolute;left:0;top:-1px}
