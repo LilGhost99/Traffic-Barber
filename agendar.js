@@ -1,6 +1,6 @@
 // Agendar cita: elige servicio, día (calendario) y hora → se crea la tarjeta (si no tiene),
 // se aparta la hora en "ocupados" y se guarda la cita. Todo cae directo en el panel.
-import { db, configurado, MESES, escapar } from "./firebase.js";
+import { db, configurado, MESES, escapar, diaDe, horasCitaDe } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 import { collection, addDoc, doc, getDoc, getDocs, serverTimestamp, writeBatch, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -72,9 +72,9 @@ const slotDe = (fecha, hora) => `${fecha}_${hora}`;
 const horaCorta = (hhmm) => { const h = Math.floor(aMin(hhmm) / 60); return `${((h + 11) % 12) + 1} ${h < 12 ? "am" : "pm"}`; };
 let ocupados = new Set();   // "2026-10-12_15:00"
 
+let agenda = null;          // horario que pone el barbero desde el panel (config/agenda)
 function horasDe(fecha) {
-  const c = NEGOCIO.citas, lista = [];
-  for (let m = aMin(c.primera); m <= aMin(c.ultima); m += c.cadaMinutos) lista.push(m);
+  const lista = horasCitaDe(diaDe(agenda, NEGOCIO, fecha)).map(aMin);
   const hoy = new Date();
   if (fecha === fechaISO(hoy)) {
     const ahora = hoy.getHours() * 60 + hoy.getMinutes() + 30;   // al menos 30 min de anticipación
@@ -98,9 +98,9 @@ function pintarDias() {
   for (let i = 0; i < hueco; i++) celdas += `<span class="cal-v" aria-hidden="true"></span>`;
   for (let n = 1; n <= diasMes; n++) {
     const d = new Date(y, mes, n), f = fechaISO(d);
-    const cerrado = !NEGOCIO.horario.dias.includes(d.getDay());
+    const cerrado = !diaDe(agenda, NEGOCIO, f).abierto;
     const fuera = d < hoy || d > fin;
-    const lleno = !cerrado && !fuera && !libresDe(f).length;
+    const lleno = !cerrado && !fuera && !libresDe(f).length;   // también cuando hoy ya no quedan horas
     const off = cerrado || fuera || lleno;
     const etiqueta = `${DIAS[d.getDay()]} ${n} de ${MESES[mes]}${cerrado ? ", cerrado" : lleno ? ", lleno" : fuera ? ", no disponible" : ""}`;
     celdas += `<label class="cal-d${off ? " off" : ""}${lleno ? " lleno" : ""}${f === fechaISO(hoy) ? " hoy" : ""}">
@@ -116,7 +116,7 @@ function pintarDias() {
     </div>
     <div class="cal-sem" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
     <div class="cal-grid">${celdas}</div>
-    <p class="cal-ley"><span class="pt hoy"></span>Hoy <span class="pt lleno"></span>Lleno <span class="pt cerr"></span>Cerrado (domingo)</p>`;
+    <p class="cal-ley"><span class="pt hoy"></span>Hoy <span class="pt lleno"></span>Lleno <span class="pt cerr"></span>Cerrado</p>`;
   // Si el día elegido se llenó, se quita
   if (sel && !libresDe(sel).length) { $("opHoras").innerHTML = `<p class="muted">Ese día ya se llenó. Elige otro.</p>`; resumen(); }
 }
@@ -147,6 +147,10 @@ function escucharOcupados() {
   const q = query(collection(db, "ocupados"), where("fecha", ">=", fechaISO(hoy0())), where("fecha", "<=", fechaISO(limite())));
   onSnapshot(q, (snap) => {
     ocupados = new Set(snap.docs.map((d) => d.id));
+    pintarDias(); pintarHoras(); resumen();
+  }, (ex) => console.error(ex));
+  onSnapshot(doc(db, "config", "agenda"), (snap) => {
+    agenda = snap.exists() ? snap.data() : null;
     pintarDias(); pintarHoras(); resumen();
   }, (ex) => console.error(ex));
 }

@@ -269,3 +269,71 @@ h1 .script{font-size:1em;line-height:.92}
 .btn-borrar{flex:0 0 auto !important;min-height:44px;padding:8px 12px;border:none;background:transparent;color:#C9776C;font:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-left:auto}
 .btn-borrar:hover{color:#F2B1A8;text-decoration:underline}
 #agListo{margin-top:12px}
+
+/* ---- Agenda: calendario del panel ---- */
+.cal-adm{margin-top:18px}
+.cal-adm .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-adm .cal-head b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:24px;text-transform:uppercase}
+.cal-nav{width:44px;height:44px;border-radius:50%;border:1px solid #333;background:#0A0A0A;color:var(--text);font-size:24px;line-height:1;cursor:pointer}
+.cal-nav:hover{border-color:var(--gold)}
+.ca-sem,.ca-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.ca-sem span{text-align:center;font-size:12px;font-weight:700;color:var(--muted);padding-bottom:4px}
+.ca-d{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;min-height:54px;padding:7px 2px 5px;border-radius:12px;border:1px solid #2C2C2C;background:#0C0C0C;color:var(--text);font:inherit;cursor:pointer}
+.ca-d b{font-size:16px;font-weight:700;line-height:1}
+.ca-d:hover{border-color:var(--gold-soft)}
+.ca-d.hoy{box-shadow:inset 0 -3px 0 var(--gold)}
+.ca-d.sel{border-color:var(--gold);background:#1A2208;box-shadow:inset 0 0 0 1px var(--gold)}
+.ca-d.cerrado{background:transparent;border-style:dashed;color:#5C5C5C}
+.ca-d.pasado{opacity:.55}
+.ca-d.esp::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:#F2C14E}
+.ca-d:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.ca-n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--gold);color:#050505;font-size:12px;font-weight:800}
+.ca-n.pend{background:#E5675A;color:#fff}
+.ca-x{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#5C5C5C}
+.ca-ley{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:10px 0 0;font-size:13px;color:var(--muted)}
+.ley-esp{display:inline-block;width:8px;height:8px;border-radius:50%;background:#F2C14E;margin-left:6px}
+
+.dia-adm h2{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:24px;text-transform:uppercase;margin:0}
+.da-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.chip-esp{border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;color:#F2C14E;border:1px solid rgba(242,193,78,.5);background:rgba(242,193,78,.08)}
+.da-horas{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end;margin-top:10px}
+.da-horas .btn{grid-column:1/-1}
+.da-cerrado{margin:14px 0 0;padding:14px;border-radius:12px;border:1px dashed #3A3A3A;color:var(--soft);text-align:center}
+.link-btn{background:none;border:none;padding:0;margin-top:10px;color:var(--gold);font:inherit;font-size:14px;text-decoration:underline;cursor:pointer;min-height:32px}
+.slots{display:grid;gap:6px;margin-top:16px}
+.slot{display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:10px;min-height:52px;padding:6px 8px 6px 12px;border-radius:12px;border:1px solid var(--line);background:#0C0C0C}
+.slot .s-h{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:19px}
+.slot .s-c{display:grid;gap:4px;min-width:0;font-size:14px}
+.slot .s-cita{overflow-wrap:anywhere}
+.slot .s-cita i{font-style:normal;font-size:11px;padding:2px 7px;margin-left:2px;vertical-align:1px}
+.slot .s-a{display:flex;gap:6px}
+.slot .s-a .btn{min-height:40px;padding:6px 12px;font-size:14px}
+.slot.ocup{border-color:rgba(165,242,10,.35);background:rgba(165,242,10,.05)}
+.slot.bloq{border-style:dashed;background:transparent;color:var(--soft)}
+.nota-sm{font-size:13px;color:var(--muted);margin:10px 0 0}
+.da-citas .cita:first-child{margin-top:0}
+
+/* ---- Horario de la semana ---- */
+.sem-filas{display:grid;gap:8px;margin:14px 0 16px}
+.sem-fila{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"sw nom" "h h";align-items:center;gap:8px 12px;padding:12px;border-radius:14px;border:1px solid var(--line);background:#0C0C0C}
+.sem-fila .sw{grid-area:sw}
+.sem-fila b{grid-area:nom;font-size:16px}
+.sem-h{grid-area:h;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.sem-h span{color:var(--muted);font-size:14px}
+.sem-cerr{display:none;grid-area:h;color:var(--muted);font-size:14px}
+.sem-fila.off .sem-h{display:none}
+.sem-fila.off .sem-cerr{display:block}
+.sem-fila.off b{color:var(--muted)}
+@media (min-width:560px){.sem-fila{grid-template-columns:auto 120px 1fr;grid-template-areas:"sw nom h"}}
+.sw{position:relative;display:inline-block;width:50px;height:30px;cursor:pointer}
+.sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;min-height:0}
+.sw span{position:absolute;inset:0;border-radius:999px;background:#2A2A2A;transition:background .15s}
+.sw span::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#888;transition:transform .15s,background .15s}
+.sw input:checked + span{background:var(--gold)}
+.sw input:checked + span::after{transform:translateX(20px);background:#050505}
+.sw input:focus-visible + span{outline:2px solid var(--gold);outline-offset:2px}
+.esp-fila{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.esp-fila:first-child{border-top:none}
+.esp-fila b{display:block}
+.esp-fila span{font-size:14px;color:var(--muted)}
+p .link-btn{margin:0;min-height:0;font-size:inherit}

@@ -66,6 +66,13 @@ if (configurado) {
     }, (ex) => { console.error(ex); pintarPromos(NEGOCIO.promociones); });
   }
 
+  // Horario que el barbero cambia desde el panel: la página lo pinta en cuanto llega
+  if (document.getElementById("estadoCorto") || document.getElementById("estadoLargo") || document.getElementById("tablaHorario")) {
+    onSnapshot(doc(db, "config", "agenda"), (snap) => {
+      if (snap.exists()) document.dispatchEvent(new CustomEvent("tb-agenda", { detail: snap.data() }));
+    }, (ex) => console.error(ex));
+  }
+
   if (document.querySelector("[data-premio]")) {
     onSnapshot(doc(db, "config", "negocio"), (snap) => pintarPremios(snap.exists() ? snap.data() : {}),
       (ex) => console.error(ex));

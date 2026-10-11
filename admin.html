@@ -51,7 +51,7 @@
   <!-- ====== PANEL ====== -->
   <section id="vistaPanel" class="hidden">
     <nav class="tabs" role="tablist" aria-label="Secciones del panel">
-      <button class="tab-btn" type="button" role="tab" data-tab="citas" aria-selected="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Citas</span><span class="tab-badge hidden" id="badgeCitas" aria-label="citas nuevas"></span></button>
+      <button class="tab-btn" type="button" role="tab" data-tab="agenda" aria-selected="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Agenda</span><span class="tab-badge hidden" id="badgeCitas" aria-label="citas nuevas"></span></button>
       <button class="tab-btn" type="button" role="tab" data-tab="sellar" aria-selected="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 10"/></svg><span>Sellar</span></button>
       <button class="tab-btn" type="button" role="tab" data-tab="caja" aria-selected="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.6"/><path d="M6 9.5v.01M18 15.5v.01"/></svg><span>Caja</span></button>
       <button class="tab-btn" type="button" role="tab" data-tab="clientes" aria-selected="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg><span>Clientes</span></button>
@@ -147,11 +147,54 @@
 
     </div>
 
-    <!-- ===== Citas ===== -->
+    <!-- ===== Agenda: calendario ===== -->
+    <div id="tab-agenda" class="tab hidden" role="tabpanel">
+    <h1 class="display" style="font-size:44px">Tu <span class="script" style="display:inline;font-size:1em">agenda</span></h1>
+    <div class="sub-tabs" role="group" aria-label="Agenda">
+      <button type="button" data-ir="agenda" aria-pressed="true">Calendario</button>
+      <button type="button" data-ir="citas" aria-pressed="false">Lista</button>
+      <button type="button" data-ir="horario" aria-pressed="false">Horario</button>
+    </div>
+    <button class="btn btn-primary btn-block" type="button" data-nueva-cita style="margin-top:14px">+ Agendar cita o walk-in</button>
+    <div id="agHuecoCal"></div>
+    <div id="calAdmin" class="cal-adm" aria-live="polite"></div>
+    <section id="diaAdmin" class="box dia-adm" aria-live="polite"></section>
+    <div id="avisoAgenda" class="aviso error hidden" role="alert"></div>
+    </div>
+
+    <!-- ===== Agenda: horario ===== -->
+    <div id="tab-horario" class="tab hidden" role="tabpanel">
+    <h1 class="display" style="font-size:44px">Horario</h1>
+    <div class="sub-tabs" role="group" aria-label="Agenda">
+      <button type="button" data-ir="agenda" aria-pressed="false">Calendario</button>
+      <button type="button" data-ir="citas" aria-pressed="false">Lista</button>
+      <button type="button" data-ir="horario" aria-pressed="true">Horario</button>
+    </div>
+    <p class="muted" style="font-size:14px;margin:12px 0 0;line-height:1.5">Lo que pongas aquí se ve en la página y en el calendario para agendar. Las citas son a horas cerradas: de la primera hora después de abrir hasta una hora antes de cerrar.</p>
+    <form id="formSemana" class="box" novalidate>
+      <h2>Horario normal</h2>
+      <div id="semanaFilas" class="sem-filas"></div>
+      <button class="btn btn-primary btn-block" type="submit" id="btnSemana">Guardar horario</button>
+      <p id="semanaMsg" class="aviso ok hidden" role="status"></p>
+    </form>
+    <section class="box">
+      <h2>Días especiales</h2>
+      <p class="muted" style="font-size:14px;margin:6px 0 12px">Para cerrar un día (o abrir un domingo), tócalo en el <button type="button" class="link-btn" data-ir="agenda">Calendario</button>.</p>
+      <div id="listaEspeciales"></div>
+    </section>
+    </div>
+
+    <!-- ===== Agenda: lista de citas ===== -->
     <div id="tab-citas" class="tab hidden" role="tabpanel">
     <h1 class="display" style="font-size:44px">Tus <span class="script" style="display:inline;font-size:1em">citas</span></h1>
+    <div class="sub-tabs" role="group" aria-label="Agenda">
+      <button type="button" data-ir="agenda" aria-pressed="false">Calendario</button>
+      <button type="button" data-ir="citas" aria-pressed="true">Lista</button>
+      <button type="button" data-ir="horario" aria-pressed="false">Horario</button>
+    </div>
     <p class="muted" style="font-size:14px;margin:8px 0 0;line-height:1.5">Aquí cae todo: lo que agendan en la página y lo que agendes tú. Dale <b>Confirmar</b> y mándale su WhatsApp. Cuando llegue, dale <b>Llegó</b> y se le pone su sello.</p>
-    <button class="btn btn-primary btn-block" type="button" id="btnNuevaCita" style="margin-top:14px">+ Agendar cita o walk-in</button>
+    <button class="btn btn-primary btn-block" type="button" data-nueva-cita style="margin-top:14px">+ Agendar cita o walk-in</button>
+    <div id="agHuecoLista">
 
     <form id="formAgenda" class="box caja-form hidden" novalidate>
       <h2>Agendar</h2>
@@ -180,6 +223,7 @@
       <div class="aviso error hidden" id="agAviso" role="alert"></div>
     </form>
     <div id="agListo" class="cobro-rapido hidden" role="status"></div>
+    </div>
     <div class="filtros" role="group" aria-label="Qué citas ver">
       <button class="filtro" type="button" data-filtro="hoy" aria-pressed="true">Hoy</button>
       <button class="filtro" type="button" data-filtro="proximas" aria-pressed="false">Próximas</button>
@@ -395,7 +439,7 @@
 </main>
 
 <script type="module">
-import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos } from "./firebase.js";
+import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos, diaDe, horasCitaDe, agendaLimpia } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, runTransaction, addDoc, serverTimestamp, writeBatch, setDoc, updateDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -464,7 +508,7 @@ function pintarLista(el, docs, vacio) {
 let tabActual = "sellar";
 function irA(tab) {
   tabActual = tab;
-  const grupo = (tab === "promos" || tab === "numeros") ? "numeros" : tab;
+  const grupo = (tab === "promos" || tab === "numeros") ? "numeros" : (tab === "citas" || tab === "horario") ? "agenda" : tab;
   document.querySelectorAll(".tab-btn").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === grupo)));
   document.querySelectorAll(".sub-tabs [data-ir]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ir === tab)));
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("hidden", t.id !== "tab-" + tab));
@@ -472,9 +516,11 @@ function irA(tab) {
   if (tab === "clientes") cargarListas();
   if (tab === "numeros") cargarNumeros();
   if (tab === "citas") pintarCitas();
+  if (tab === "agenda") pintarCalAdmin();
+  if (tab === "horario") pintarHorario();
   if (tab === "caja") pintarCaja();
 }
-document.querySelectorAll(".sub-tabs [data-ir]").forEach(b => b.addEventListener("click", () => irA(b.dataset.ir)));
+document.querySelectorAll(".sub-tabs [data-ir], .link-btn[data-ir]").forEach(b => b.addEventListener("click", () => irA(b.dataset.ir)));
 document.querySelectorAll(".tab-btn").forEach(b => b.addEventListener("click", () => irA(b.dataset.tab)));
 
 // ---------- Clientes (se cargan todos; para una barbería son pocos) ----------
@@ -715,6 +761,7 @@ function escucharCitas() {
     $("avisoCitas").classList.add("hidden");
     pintarBadge();
     if (tabActual === "citas") pintarCitas();
+    if (tabActual === "agenda") pintarCalAdmin();
   }, (ex) => {
     console.error(ex);
     $("listaCitas").innerHTML = "";
@@ -871,7 +918,7 @@ async function atenderCita(c, boton) {
   }
 }
 
-$("listaCitas").addEventListener("click", async (e) => {
+async function accionCita(e) {
   const b = e.target.closest("[data-acc]");
   if (!b) return;
   const c = citas.find(x => x.id === b.closest(".cita").dataset.id);
@@ -890,24 +937,21 @@ $("listaCitas").addEventListener("click", async (e) => {
     catch (ex) { console.error(ex); b.disabled = false; alert("No se pudo cobrar. Intenta de nuevo."); }
     return;
   }
-});
+}
+$("listaCitas").addEventListener("click", accionCita);
 
 // ---------- Agendar desde el panel (walk-ins y citas por teléfono) ----------
 let agCuando = "ahora", agServ = null, agHora = "", agClienteId = "", agBuscado = "";
 const horaCortaA = (hhmm) => { const h = Number(hhmm.split(":")[0]); return `${((h + 11) % 12) + 1} ${h < 12 ? "am" : "pm"}`; };
-function horasDelDia() {
-  const c = NEGOCIO.citas, aM = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; }, out = [];
-  for (let m = aM(c.primera); m <= aM(c.ultima); m += c.cadaMinutos) out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
-  return out;
-}
+const horasDelDia = (f) => horasCitaDe(diaDe(agendaAdm, NEGOCIO, f));
 function pintarAgHoras() {
   const f = $("agFecha").value;
   if (!f) { $("agHoras").innerHTML = ""; return; }
-  const d = deISO(f);
-  if (!NEGOCIO.horario.dias.includes(d.getDay())) { $("agHoras").innerHTML = `<p class="muted" style="grid-column:1/-1;margin:0">Ese día está cerrado.</p>`; agHora = ""; return; }
+  if (!diaDe(agendaAdm, NEGOCIO, f).abierto) { $("agHoras").innerHTML = `<p class="muted" style="grid-column:1/-1;margin:0">Ese día está cerrado. Si quieres abrirlo, tócalo en el Calendario.</p>`; agHora = ""; return; }
   const ahora = new Date(), esHoy = f === fechaISO(ahora), minAhora = ahora.getHours() * 60 + ahora.getMinutes();
   const ocup = new Set(citas.filter(c => c.fecha === f && ACTIVAS.includes(c.estado)).map(c => c.hora));
-  $("agHoras").innerHTML = horasDelDia().map(h => {
+  ocupadosAdm.forEach(o => { if (o.fecha === f) ocup.add(o.hora); });
+  $("agHoras").innerHTML = horasDelDia(f).map(h => {
     const [hh, mm] = h.split(":").map(Number);
     const pasada = esHoy && hh * 60 + mm < minAhora - 30;
     const ocupada = ocup.has(h);
@@ -929,12 +973,15 @@ function ponerCuando(v) {
   if (v === "luego") pintarAgHoras();
   pintarAgServicios();
 }
-function abrirAgenda() {
+function abrirAgenda(opc = {}) {
+  // El formulario aparece en la pestaña donde estás (Calendario o Lista)
+  const hueco = tabActual === "agenda" ? $("agHuecoCal") : $("agHuecoLista");
+  hueco.append($("formAgenda"), $("agListo"));
   $("formAgenda").reset();
   agServ = null; agHora = ""; agClienteId = ""; agBuscado = "";
   $("agFecha").min = fechaISO(new Date());
   const dia = new Date();
-  while (!NEGOCIO.horario.dias.includes(dia.getDay())) dia.setDate(dia.getDate() + 1);   // el siguiente día abierto
+  for (let i = 0; i < 30 && !diaDe(agendaAdm, NEGOCIO, fechaISO(dia)).abierto; i++) dia.setDate(dia.getDate() + 1);   // el siguiente día abierto
   $("agFecha").value = fechaISO(dia);
   $("agDia").innerHTML = '<option value="">Día</option>' + Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
   $("agMes").innerHTML = '<option value="">Mes</option>' + MESES.map((m, i) => `<option value="${i + 1}">${m[0].toUpperCase() + m.slice(1)}</option>`).join("");
@@ -942,13 +989,15 @@ function abrirAgenda() {
   $("agBarberoWrap").classList.toggle("hidden", bs.length < 2);
   $("agBarbero").innerHTML = '<option value="">Cualquiera</option>' + bs.map(b => `<option>${escapar(b.nombre)}</option>`).join("");
   $("agCliente").classList.add("hidden"); $("agCumple").classList.add("hidden"); $("agAviso").classList.add("hidden"); $("agListo").classList.add("hidden");
-  ponerCuando("ahora");
+  if (opc.fecha) { $("agFecha").value = opc.fecha; agHora = opc.hora || ""; ponerCuando("luego"); }
+  else ponerCuando("ahora");
   $("formAgenda").classList.remove("hidden");
-  $("btnNuevaCita").classList.add("hidden");
-  $("agTel").focus();
+  document.querySelectorAll("[data-nueva-cita]").forEach(b => b.classList.add("hidden"));
+  $("formAgenda").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("agTel").focus({ preventScroll: true });
 }
-function cerrarAgenda() { $("formAgenda").classList.add("hidden"); $("btnNuevaCita").classList.remove("hidden"); }
-$("btnNuevaCita").addEventListener("click", abrirAgenda);
+function cerrarAgenda() { $("formAgenda").classList.add("hidden"); document.querySelectorAll("[data-nueva-cita]").forEach(b => b.classList.remove("hidden")); }
+document.querySelectorAll("[data-nueva-cita]").forEach(b => b.addEventListener("click", () => abrirAgenda()));
 $("agCancelar").addEventListener("click", cerrarAgenda);
 $("agFecha").addEventListener("change", pintarAgHoras);
 $("formAgenda").addEventListener("click", (e) => {
@@ -1031,10 +1080,237 @@ $("formAgenda").addEventListener("submit", async (e) => {
         <div><a class="btn btn-primary btn-sm" href="${wa}" target="_blank" rel="noopener">Mandarle confirmación</a></div>`;
       $("agListo").classList.remove("hidden");
       filtroCitas = fecha === fechaISO(new Date()) ? "hoy" : "proximas";
-      pintarCitas();
+      diaSel = fecha;
+      pintarCitas(); if (tabActual === "agenda") pintarCalAdmin();
     }
   } catch (ex) { console.error(ex); falla("No se pudo guardar. Revisa que hayas pegado las reglas nuevas en Firestore."); }
   btn.disabled = false;
+});
+
+// ---------- Agenda: horario (config/agenda) y horas bloqueadas ----------
+let agendaAdm = null;            // { semana, dias } tal como está en Firestore
+let ocupadosAdm = [];            // [{ id, fecha, hora, bloqueo }]
+let diaSel = fechaISO(new Date());
+let mesAdm = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+const DIAS_CORTO = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const NOMBRE_DIA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const OPC_HORAS = (() => { const o = []; for (let m = 7 * 60; m <= 23 * 60 + 30; m += 30) o.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`); return o; })();
+const opcionesHora = (sel) => OPC_HORAS.map(h => `<option value="${h}"${h === sel ? " selected" : ""}>${hora12(h)}</option>`).join("");
+
+function escucharAgenda() {
+  onSnapshot(doc(db, "config", "agenda"), (snap) => {
+    agendaAdm = snap.exists() ? snap.data() : null;
+    if (tabActual === "agenda") pintarCalAdmin();
+    if (tabActual === "horario") pintarEspeciales();
+    if (!$("formAgenda").classList.contains("hidden")) pintarAgHoras();
+  }, (ex) => console.error(ex));
+  onSnapshot(query(collection(db, "ocupados"), where("fecha", ">=", fechaISO(new Date()))), (snap) => {
+    ocupadosAdm = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (tabActual === "agenda") pintarCalAdmin();
+  }, (ex) => console.error(ex));
+}
+
+async function guardarAgenda(semana, dias) {
+  const hoy = fechaISO(new Date());
+  const limpios = Object.fromEntries(Object.entries(dias).filter(([f]) => f >= hoy));   // los días pasados ya no se guardan
+  await setDoc(doc(db, "config", "agenda"), { semana, dias: limpios, actualizado: serverTimestamp(), por: auth.currentUser?.email || "" });
+}
+async function cambiarDia(fecha, valor) {   // valor: {cerrado:true} | {abre, cierra} | null (= horario normal)
+  const a = agendaLimpia(agendaAdm, NEGOCIO);
+  const dias = { ...a.dias };
+  if (valor) dias[fecha] = valor; else delete dias[fecha];
+  try { await guardarAgenda(a.semana, dias); agendaAdm = { semana: a.semana, dias }; pintarCalAdmin(); }
+  catch (ex) { console.error(ex); alert("No se pudo guardar. Revisa que hayas pegado las reglas nuevas."); }
+}
+
+// --- Calendario del mes
+function pintarCalAdmin() {
+  if (!citasCargadas) { $("calAdmin").innerHTML = `<p class="muted">Cargando…</p>`; return; }
+  const hoy = fechaISO(new Date());
+  const y = mesAdm.getFullYear(), mes = mesAdm.getMonth();
+  const hueco = (new Date(y, mes, 1).getDay() + 6) % 7, diasMes = new Date(y, mes + 1, 0).getDate();
+  let celdas = "";
+  for (let i = 0; i < hueco; i++) celdas += `<span></span>`;
+  for (let n = 1; n <= diasMes; n++) {
+    const f = fechaISO(new Date(y, mes, n));
+    const info = diaDe(agendaAdm, NEGOCIO, f);
+    const delDia = citas.filter(c => c.fecha === f && ACTIVAS.includes(c.estado));
+    const pend = delDia.some(c => c.estado === "pendiente");
+    const clases = ["ca-d", info.abierto ? "" : "cerrado", info.especial ? "esp" : "", f === hoy ? "hoy" : "", f === diaSel ? "sel" : "", f < hoy ? "pasado" : ""].filter(Boolean).join(" ");
+    celdas += `<button type="button" class="${clases}" data-fecha="${f}" aria-pressed="${f === diaSel}" aria-label="${fechaTitulo(f)}: ${info.abierto ? delDia.length + " citas" : "cerrado"}">
+      <b>${n}</b>${delDia.length ? `<span class="ca-n${pend ? " pend" : ""}">${delDia.length}</span>` : info.abierto ? "" : `<span class="ca-x">cerr</span>`}</button>`;
+  }
+  $("calAdmin").innerHTML = `
+    <div class="cal-head">
+      <button type="button" class="cal-nav" data-mes="-1" aria-label="Mes anterior">‹</button>
+      <b>${MESES[mes]} ${y}</b>
+      <button type="button" class="cal-nav" data-mes="1" aria-label="Mes siguiente">›</button>
+    </div>
+    <div class="ca-sem" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+    <div class="ca-grid">${celdas}</div>
+    <p class="ca-ley"><span class="ca-n">2</span> citas <span class="ca-n pend">1</span> por confirmar <span class="ley-esp"></span> horario especial</p>`;
+  pintarDiaAdmin();
+}
+$("calAdmin").addEventListener("click", (e) => {
+  const m = e.target.closest("[data-mes]");
+  if (m) { mesAdm = new Date(mesAdm.getFullYear(), mesAdm.getMonth() + Number(m.dataset.mes), 1); pintarCalAdmin(); return; }
+  const d = e.target.closest("[data-fecha]");
+  if (d) { diaSel = d.dataset.fecha; pintarCalAdmin(); $("diaAdmin").scrollIntoView({ behavior: "smooth", block: "start" }); }
+});
+
+// --- Detalle del día elegido
+function pintarDiaAdmin() {
+  const f = diaSel, hoy = fechaISO(new Date());
+  const info = diaDe(agendaAdm, NEGOCIO, f);
+  const normal = agendaLimpia(agendaAdm, NEGOCIO).semana[deISO(f).getDay()];
+  const delDia = citas.filter(c => c.fecha === f).sort((a, b) => a.hora.localeCompare(b.hora));
+  const activas = delDia.filter(c => ACTIVAS.includes(c.estado));
+  const pasado = f < hoy;
+  let html = `<div class="da-head"><h2>${fechaTitulo(f)}</h2>${info.especial ? `<span class="chip-esp">Horario especial</span>` : ""}</div>`;
+
+  if (!pasado) {
+    html += `<div class="seg" role="group" aria-label="Este día">
+        <button type="button" data-dia-estado="abierto" aria-pressed="${info.abierto}">Abierto</button>
+        <button type="button" data-dia-estado="cerrado" aria-pressed="${!info.abierto}">Cerrado</button>
+      </div>`;
+    if (info.abierto) html += `<div class="da-horas">
+        <label>Abre<select id="daAbre">${opcionesHora(info.abre)}</select></label>
+        <label>Cierra<select id="daCierra">${opcionesHora(info.cierra)}</select></label>
+        <button class="btn btn-ghost btn-sm" type="button" data-dia-horas>Guardar horas</button>
+      </div>`;
+    if (info.especial) html += `<button class="link-btn" type="button" data-dia-normal>Volver al horario normal (${normal.abierto ? hora12(normal.abre) + " a " + hora12(normal.cierra) : "cerrado"})</button>`;
+  }
+
+  if (!info.abierto) {
+    html += `<p class="da-cerrado">Cerrado este día. En la página no se puede agendar.</p>`;
+    if (activas.length) html += `<div class="cita-aviso">Ojo: hay ${activas.length} cita${activas.length === 1 ? "" : "s"} este día. Avísales o cámbialas.</div>`;
+  }
+
+  // Horas del día: lo que está ocupado, libre o bloqueado
+  const horas = new Set(info.abierto ? horasCitaDe(info) : []);
+  activas.forEach(c => horas.add(c.hora.slice(0, 2) + ":00"));
+  const ahora = new Date(), minAhora = ahora.getHours() * 60 + ahora.getMinutes();
+  if (horas.size) {
+    html += `<div class="slots">` + [...horas].sort().map(h => {
+      const enHora = activas.filter(c => c.hora.slice(0, 2) === h.slice(0, 2));
+      const bloq = ocupadosAdm.find(o => o.fecha === f && o.hora === h && !enHora.length);
+      const ya = pasado || (f === hoy && Number(h.slice(0, 2)) * 60 < minAhora - 30);
+      let cuerpo, acc = "", clase;
+      if (enHora.length) {
+        clase = "ocup";
+        cuerpo = enHora.map(c => `<span class="s-cita"><b>${escapar(c.nombre.split(" ")[0])}</b> · ${escapar(c.servicio)}${c.hora.slice(3) !== "00" ? ` · ${hora12(c.hora)}` : ""} <i class="estado-c ${escapar(c.estado)}">${ESTADOS[c.estado] || ""}</i></span>`).join("");
+      } else if (bloq) {
+        clase = "bloq"; cuerpo = `<span>🔒 Bloqueada</span>`;
+        if (!pasado) acc = `<button type="button" class="btn btn-ghost btn-sm" data-desbloquear="${escapar(bloq.id)}">Quitar</button>`;
+      } else {
+        clase = "libre"; cuerpo = `<span class="muted">${ya ? "—" : "Libre"}</span>`;
+        if (!ya && info.abierto) acc = `<button type="button" class="btn btn-primary btn-sm" data-agendar-hora="${h}">Agendar</button><button type="button" class="btn btn-ghost btn-sm" data-bloquear="${h}" aria-label="Bloquear ${hora12(h)}">🔒</button>`;
+      }
+      return `<div class="slot ${clase}"><span class="s-h">${horaCortaA(h)}</span><div class="s-c">${cuerpo}</div><div class="s-a">${acc}</div></div>`;
+    }).join("") + `</div>`;
+  }
+  if (info.abierto && !pasado) html += `<p class="nota-sm">🔒 Bloquear una hora la apaga en la página (ej. para comer o un pendiente).</p>`;
+
+  if (delDia.length) html += `<div class="dia-t">Citas de este día</div><div class="da-citas">${delDia.map(htmlCita).join("")}</div>`;
+  else if (info.abierto) html += `<p class="muted" style="margin-top:14px">No hay citas este día.</p>`;
+  $("diaAdmin").innerHTML = html;
+}
+
+$("diaAdmin").addEventListener("click", async (e) => {
+  const f = diaSel;
+  if (e.target.closest(".cita")) return accionCita(e);
+  const est = e.target.closest("[data-dia-estado]");
+  if (est) {
+    const quiere = est.dataset.diaEstado === "abierto";
+    const info = diaDe(agendaAdm, NEGOCIO, f);
+    if (quiere === info.abierto) return;
+    const normal = agendaLimpia(agendaAdm, NEGOCIO).semana[deISO(f).getDay()];
+    if (!quiere) {
+      const n = citas.filter(c => c.fecha === f && ACTIVAS.includes(c.estado)).length;
+      if (n && !confirm(`Hay ${n} cita${n === 1 ? "" : "s"} este día. ¿Cerrarlo de todos modos? (Las citas no se borran; avísales.)`)) return;
+      return cambiarDia(f, normal.abierto ? { cerrado: true } : null);
+    }
+    return cambiarDia(f, normal.abierto ? null : { abre: normal.abre, cierra: normal.cierra });
+  }
+  if (e.target.closest("[data-dia-horas]")) {
+    const abre = $("daAbre").value, cierra = $("daCierra").value;
+    if (cierra <= abre) return alert("La hora de cierre tiene que ser después de abrir.");
+    const normal = agendaLimpia(agendaAdm, NEGOCIO).semana[deISO(f).getDay()];
+    return cambiarDia(f, normal.abierto && normal.abre === abre && normal.cierra === cierra ? null : { abre, cierra });
+  }
+  if (e.target.closest("[data-dia-normal]")) return cambiarDia(f, null);
+  const ag = e.target.closest("[data-agendar-hora]");
+  if (ag) return abrirAgenda({ fecha: f, hora: ag.dataset.agendarHora });
+  const bl = e.target.closest("[data-bloquear]");
+  if (bl) {
+    bl.disabled = true;
+    try { await setDoc(doc(db, "ocupados", slotDe(f, bl.dataset.bloquear)), { fecha: f, hora: bl.dataset.bloquear, bloqueo: true, creado: serverTimestamp() }); }
+    catch (ex) { console.error(ex); alert("No se pudo bloquear. Intenta de nuevo."); bl.disabled = false; }
+    return;
+  }
+  const db2 = e.target.closest("[data-desbloquear]");
+  if (db2) {
+    db2.disabled = true;
+    try { await deleteDoc(doc(db, "ocupados", db2.dataset.desbloquear)); }
+    catch (ex) { console.error(ex); alert("No se pudo quitar. Intenta de nuevo."); db2.disabled = false; }
+  }
+});
+
+// --- Horario normal de la semana
+function pintarHorario() {
+  const sem = agendaLimpia(agendaAdm, NEGOCIO).semana;
+  $("semanaMsg").classList.add("hidden");
+  $("semanaFilas").innerHTML = [1, 2, 3, 4, 5, 6, 0].map(d => `
+    <div class="sem-fila${sem[d].abierto ? "" : " off"}" data-d="${d}">
+      <label class="sw"><input type="checkbox" data-abierto${sem[d].abierto ? " checked" : ""} aria-label="${NOMBRE_DIA[d]} abierto"><span aria-hidden="true"></span></label>
+      <b>${NOMBRE_DIA[d]}</b>
+      <div class="sem-h">
+        <select data-abre aria-label="${NOMBRE_DIA[d]} abre"${sem[d].abierto ? "" : " disabled"}>${opcionesHora(sem[d].abre)}</select>
+        <span>a</span>
+        <select data-cierra aria-label="${NOMBRE_DIA[d]} cierra"${sem[d].abierto ? "" : " disabled"}>${opcionesHora(sem[d].cierra)}</select>
+      </div>
+      <span class="sem-cerr">Cerrado</span>
+    </div>`).join("");
+  pintarEspeciales();
+}
+$("semanaFilas").addEventListener("change", (e) => {
+  if (!e.target.matches("[data-abierto]")) return;
+  const fila = e.target.closest(".sem-fila");
+  fila.classList.toggle("off", !e.target.checked);
+  fila.querySelectorAll("select").forEach(s => s.disabled = !e.target.checked);
+});
+$("formSemana").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const a = agendaLimpia(agendaAdm, NEGOCIO);
+  const semana = a.semana.map(x => ({ ...x }));
+  let mal = "";
+  document.querySelectorAll(".sem-fila").forEach(fila => {
+    const d = Number(fila.dataset.d);
+    semana[d] = { abierto: fila.querySelector("[data-abierto]").checked, abre: fila.querySelector("[data-abre]").value, cierra: fila.querySelector("[data-cierra]").value };
+    if (semana[d].abierto && semana[d].cierra <= semana[d].abre) mal = `${NOMBRE_DIA[d]}: la hora de cierre tiene que ser después de abrir.`;
+  });
+  const msg = $("semanaMsg");
+  if (mal) { msg.className = "aviso error"; msg.textContent = mal; return; }
+  $("btnSemana").disabled = true;
+  try {
+    await guardarAgenda(semana, a.dias);
+    agendaAdm = { semana, dias: a.dias };
+    msg.className = "aviso ok"; msg.textContent = "Horario guardado ✓ Ya se ve en la página.";
+  } catch (ex) { console.error(ex); msg.className = "aviso error"; msg.textContent = "No se pudo guardar. Revisa que hayas pegado las reglas nuevas."; }
+  $("btnSemana").disabled = false;
+});
+function pintarEspeciales() {
+  const hoy = fechaISO(new Date());
+  const lista = Object.entries(agendaLimpia(agendaAdm, NEGOCIO).dias).filter(([f]) => f >= hoy).sort(([a], [b]) => a.localeCompare(b));
+  $("listaEspeciales").innerHTML = lista.length ? lista.map(([f, v]) => {
+    const d = deISO(f);
+    return `<div class="esp-fila"><div><b>${DIAS_CORTO[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()].slice(0, 3)}</b><span>${v.cerrado ? "Cerrado" : `Abierto ${hora12(v.abre)} a ${hora12(v.cierra)}`}</span></div>
+      <button type="button" class="btn btn-ghost btn-sm" data-quitar-esp="${f}">Quitar</button></div>`;
+  }).join("") : `<p class="muted" style="margin:0">No hay días especiales.</p>`;
+}
+$("listaEspeciales").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-quitar-esp]");
+  if (b) cambiarDia(b.dataset.quitarEsp, null).then(pintarEspeciales);
 });
 
 
@@ -1707,6 +1983,7 @@ if (!configurado) {
       escucharConfig();
       escucharResenas();
       escucharCitas();
+      escucharAgenda();
       escucharCaja();
     }
   });

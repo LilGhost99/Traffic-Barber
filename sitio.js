@@ -119,23 +119,44 @@ function ahoraPachuca() {
   const dia = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[partes.weekday];
   return { dia, min: (Number(partes.hour) % 24) * 60 + Number(partes.minute) };
 }
+// Horario de la semana (lo puede cambiar el barbero desde el panel → evento "tb-agenda")
+let agendaVivo = null;
+function semana() {
+  const h = NEGOCIO.horario;
+  const base = [0, 1, 2, 3, 4, 5, 6].map((d) => ({ abierto: h.dias.includes(d), abre: h.abre, cierra: h.cierra }));
+  const s = agendaVivo && Array.isArray(agendaVivo.semana) && agendaVivo.semana.length === 7 ? agendaVivo.semana : null;
+  return s ? s.map((x, i) => ({ abierto: !!x.abierto, abre: x.abre || base[i].abre, cierra: x.cierra || base[i].cierra })) : base;
+}
+function fechaPachuca(diasMas) {
+  const d = new Date(Date.now() + diasMas * 86400000);
+  const p = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  return p;   // "2026-10-11"
+}
+function infoDia(diasMas, diaSemana) {
+  const n = semana()[diaSemana];
+  const esp = agendaVivo && agendaVivo.dias ? agendaVivo.dias[fechaPachuca(diasMas)] : null;
+  if (esp) return esp.cerrado ? { abierto: false, abre: n.abre, cierra: n.cierra, especial: true } : { abierto: true, abre: esp.abre || n.abre, cierra: esp.cierra || n.cierra, especial: true };
+  return { ...n, especial: false };
+}
 function prepararHorario() {
-  const h = NEGOCIO.horario, abre = aMin(h.abre), cierra = aMin(h.cierra);
   const { dia, min } = ahoraPachuca();
-  const abiertoHoy = h.dias.includes(dia);
-  const abierto = abiertoHoy && min >= abre && min < cierra;
+  const hoy = infoDia(0, dia);
+  const abierto = hoy.abierto && min >= aMin(hoy.abre) && min < aMin(hoy.cierra);
   let corto, largo;
   if (abierto) {
-    corto = `Abierto ahora · cierra ${hora12(cierra)}`;
-    largo = `Abierto ahora · cierra a las ${hora12(cierra)}`;
+    corto = `Abierto ahora · cierra ${hora12(aMin(hoy.cierra))}`;
+    largo = `Abierto ahora · cierra a las ${hora12(aMin(hoy.cierra))}`;
   } else {
-    let d = dia, cuando = "hoy";
-    if (!(abiertoHoy && min < abre)) {
-      for (let i = 1; i <= 7; i++) { d = (dia + i) % 7; if (h.dias.includes(d)) break; }
-      cuando = d === (dia + 1) % 7 ? "mañana" : "el " + DIAS[d].toLowerCase();
+    let cuando = "hoy", sig = hoy;
+    if (!(hoy.abierto && min < aMin(hoy.abre))) {
+      sig = null;
+      for (let i = 1; i <= 21 && !sig; i++) {
+        const d = (dia + i) % 7, info = infoDia(i, d);
+        if (info.abierto) { sig = info; cuando = i === 1 ? "mañana" : "el " + DIAS[d].toLowerCase(); }
+      }
     }
-    corto = `Cerrado · abre ${cuando} ${hora12(abre)}`;
-    largo = `Cerrado ahora · abre ${cuando} a las ${hora12(abre)}`;
+    corto = sig ? `Cerrado · abre ${cuando} ${hora12(aMin(sig.abre))}` : "Cerrado por ahora";
+    largo = sig ? `Cerrado ahora · abre ${cuando} a las ${hora12(aMin(sig.abre))}` : "Cerrado por ahora";
   }
   if ($("estadoCorto")) $("estadoCorto").textContent = corto;
   if ($("estadoLargo")) {
@@ -144,12 +165,22 @@ function prepararHorario() {
   }
   const tabla = $("tablaHorario");
   if (tabla) {
+    const sem = semana();
     const orden = [1, 2, 3, 4, 5, 6, 0];
-    tabla.tBodies[0].innerHTML = orden.map((d) =>
+    let filas = orden.map((d) =>
       `<tr${d === dia ? ' class="hoy"' : ""}><td>${DIAS[d]}${d === dia ? " · hoy" : ""}</td>` +
-      `<td>${h.dias.includes(d) ? `${hora12(abre)} a ${hora12(cierra)}` : "Cerrado"}</td></tr>`).join("");
+      `<td>${sem[d].abierto ? `${hora12(aMin(sem[d].abre))} a ${hora12(aMin(sem[d].cierra))}` : "Cerrado"}</td></tr>`).join("");
+    // Días especiales de las próximas 2 semanas
+    for (let i = 0; i < 14; i++) {
+      const d = (dia + i) % 7, info = infoDia(i, d);
+      if (!info.especial) continue;
+      const [, m, dd] = fechaPachuca(i).split("-").map(Number);
+      filas += `<tr class="especial"><td>⚠ ${DIAS[d]} ${dd}/${m}</td><td>${info.abierto ? `${hora12(aMin(info.abre))} a ${hora12(aMin(info.cierra))}` : "Cerrado"}</td></tr>`;
+    }
+    tabla.tBodies[0].innerHTML = filas;
   }
 }
+document.addEventListener("tb-agenda", (e) => { agendaVivo = e.detail; prepararHorario(); });
 
 pintarPrecios();
 pintarBeneficios();
