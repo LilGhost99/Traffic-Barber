@@ -6,8 +6,8 @@
 <title>Traffic Barber · TB Barber shop | Pachuca</title>
 <meta name="description" content="Traffic Barber, studio de barbería en Real de Toledo, Pachuca. 4.9 estrellas en Google. Agenda tu cita en línea.">
 <meta name="theme-color" content="#050505">
-<link rel="icon" href="icono-192.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icono-192.png?v=3">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,800;1,800;1,900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -87,9 +87,11 @@
       <div class="reward-card" aria-hidden="true">
         <div class="rc-cab">
           <div><b>Tu nombre</b><small>Cliente frecuente</small></div>
-          <span class="rc-marca">TB</span>
+          <img class="rc-logo" src="logo.png" alt="" width="900" height="377">
         </div>
-        <div class="rc-sellos"><span class="rc-s on">✓</span><span class="rc-s on">✓</span><span class="rc-s on">✓</span><span class="rc-s">4</span><span class="rc-s premio">5°</span><span class="rc-s">6</span><span class="rc-s">7</span><span class="rc-s">8</span><span class="rc-s">9</span><span class="rc-s premio">10°</span></div>
+        <div class="rc-sellos"><span class="rc-s on">✓</span><span class="rc-s on">✓</span><span class="rc-s on">✓</span><span class="rc-s">4</span><span class="rc-s premio" data-premio-corto="mitad">FACIAL
+GRATIS</span><span class="rc-s">6</span><span class="rc-s">7</span><span class="rc-s">8</span><span class="rc-s">9</span><span class="rc-s premio" data-premio-corto="final">50%
+DESC.</span></div>
         <div class="rc-pie">Te faltan <b>2 sellos</b> para tu <b data-premio="mitad">facial gratis</b></div>
       </div>
     </div>
@@ -165,6 +167,19 @@
       <p>Conoce al equipo y síguelo en redes</p>
     </div>
     <div class="barber-grid" id="listaBarberos"></div>
+  </section>
+
+  <section id="cortes" class="wrap block reveal">
+    <div class="sec-head">
+      <h2 class="display">Nuestros <span class="script">cortes</span></h2>
+      <a class="mas" href="galeria.html">Ver galería completa →</a>
+    </div>
+    <div class="gallery gallery-inicio stagger">
+      <figure class="shot foto"><button type="button" class="zoom" aria-label="Ver grande: Diseño tribal en la nuca con fade"><img src="corte1.jpg" alt="Diseño tribal en la nuca con fade" width="900" height="1200" loading="lazy" decoding="async"></button></figure>
+      <figure class="shot foto"><button type="button" class="zoom" aria-label="Ver grande: Fade con raya marcada y peinado hacia atrás"><img src="corte5.jpg" alt="Fade con raya marcada y peinado hacia atrás" width="900" height="1200" loading="lazy" decoding="async"></button></figure>
+      <figure class="shot foto"><button type="button" class="zoom" aria-label="Ver grande: Diseño de líneas con mechas claras"><img src="corte2.jpg" alt="Diseño de líneas con mechas claras" width="900" height="1200" loading="lazy" decoding="async"></button></figure>
+      <figure class="shot foto"><button type="button" class="zoom" aria-label="Ver grande: Corte militar con fade alto"><img src="corte6.jpg" alt="Corte militar con fade alto" width="900" height="1200" loading="lazy" decoding="async"></button></figure>
+    </div>
   </section>
 
   <section id="resenas" class="wrap block reveal">

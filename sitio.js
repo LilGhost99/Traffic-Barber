@@ -38,7 +38,7 @@ function pintarBarberos() {
       .filter(([, u]) => u && /^https?:\/\//.test(u));
     const foto = b.foto
       ? `<img src="${esc(b.foto)}" alt="${esc(b.nombre)}" loading="lazy">`
-      : `<div class="b-vacia"><svg width="72" height="44" aria-hidden="true"><use href="#razors"/></svg><span>[FOTO]</span></div>`;
+      : `<div class="b-vacia"><img src="logo.png" alt="" width="900" height="377" style="width:70%;height:auto;opacity:.35"><span>[FOTO]</span></div>`;
     const nombreCorto = pendiente(b.nombre) ? "" : b.nombre.split(" ")[0];
     const agendar = "agendar.html" + (varios && !pendiente(b.nombre) ? "?barbero=" + encodeURIComponent(b.nombre) : "");
     return `<article class="barbero">

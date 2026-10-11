@@ -96,6 +96,11 @@ service cloud.firestore {
       allow write: if esAdmin();
     }
 
+    // Caja: cobros y gastos. Solo el admin.
+    match /caja/{movId} {
+      allow read, write: if esAdmin();
+    }
+
     // Números del negocio (visitas y premios por mes): solo el admin.
     match /stats/{mes} {
       allow read, write: if esAdmin();

@@ -57,3 +57,24 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar);
   else iniciar();
 })();
+
+// Ver foto en grande al tocarla
+(function () {
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest(".zoom");
+    if (!b) return;
+    var img = b.querySelector("img");
+    var d = document.getElementById("visor");
+    if (!d) {
+      d = document.createElement("dialog");
+      d.id = "visor"; d.className = "visor";
+      d.innerHTML = '<img alt=""><p></p><button type="button" class="cerrar" aria-label="Cerrar">×</button>';
+      d.addEventListener("click", function (ev) { if (ev.target === d || ev.target.classList.contains("cerrar")) d.close(); });
+      document.body.appendChild(d);
+    }
+    d.querySelector("img").src = img.currentSrc || img.src;
+    d.querySelector("img").alt = img.alt;
+    d.querySelector("p").textContent = img.alt;
+    if (d.showModal) d.showModal(); else window.open(img.src, "_blank");
+  });
+})();

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>Panel · Traffic Barber</title>
 <meta name="theme-color" content="#050505">
@@ -51,11 +51,11 @@
   <!-- ====== PANEL ====== -->
   <section id="vistaPanel" class="hidden">
     <nav class="tabs" role="tablist" aria-label="Secciones del panel">
-      <button class="tab-btn" type="button" role="tab" data-tab="sellar" aria-selected="true">Sellar</button>
-      <button class="tab-btn" type="button" role="tab" data-tab="citas" aria-selected="false">Citas<span class="tab-badge hidden" id="badgeCitas" aria-label="citas nuevas"></span></button>
-      <button class="tab-btn" type="button" role="tab" data-tab="clientes" aria-selected="false">Clientes</button>
-      <button class="tab-btn" type="button" role="tab" data-tab="promos" aria-selected="false">Promos</button>
-      <button class="tab-btn" type="button" role="tab" data-tab="numeros" aria-selected="false">Números</button>
+      <button class="tab-btn" type="button" role="tab" data-tab="citas" aria-selected="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Citas</span><span class="tab-badge hidden" id="badgeCitas" aria-label="citas nuevas"></span></button>
+      <button class="tab-btn" type="button" role="tab" data-tab="sellar" aria-selected="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 10"/></svg><span>Sellar</span></button>
+      <button class="tab-btn" type="button" role="tab" data-tab="caja" aria-selected="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.6"/><path d="M6 9.5v.01M18 15.5v.01"/></svg><span>Caja</span></button>
+      <button class="tab-btn" type="button" role="tab" data-tab="clientes" aria-selected="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg><span>Clientes</span></button>
+      <button class="tab-btn" type="button" role="tab" data-tab="numeros" aria-selected="false" data-grupo="mas"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Más</span></button>
     </nav>
 
     <!-- ===== Sellar visita ===== -->
@@ -134,6 +134,7 @@
         <button class="btn btn-block" type="button" id="aBorrar" style="background:transparent;border:2px solid rgba(229,103,90,.6);color:#F2B1A8">Borrar cliente</button>
       </div>
       <div id="dMsg" class="aviso ok hidden" role="status"></div>
+      <div id="cobroRapido" class="cobro-rapido hidden"></div>
 
       <div class="subtitulo">Promos solo para este cliente</div>
       <div id="dPromos" class="promos"></div>
@@ -158,6 +159,82 @@
     </div>
     <div id="listaCitas" aria-live="polite"><p class="muted">Cargando…</p></div>
     <div id="avisoCitas" class="aviso error hidden" role="alert"></div>
+    </div>
+
+    <!-- ===== Caja ===== -->
+    <div id="tab-caja" class="tab hidden" role="tabpanel">
+    <h1 class="display" style="font-size:44px">Caja</h1>
+
+    <div class="periodos" role="group" aria-label="Periodo">
+      <button type="button" data-periodo="hoy" aria-pressed="true">Hoy</button>
+      <button type="button" data-periodo="semana" aria-pressed="false">Semana</button>
+      <button type="button" data-periodo="mes" aria-pressed="false">Mes</button>
+    </div>
+
+    <section class="caja-total" aria-live="polite">
+      <span class="ct-etq" id="cjEtiqueta">Hoy</span>
+      <b class="ct-num" id="cjTotal">$0</b>
+      <span class="ct-sub" id="cjSub">Sin movimientos todavía</span>
+      <div class="ct-split">
+        <div><span>Efectivo</span><b id="cjEfectivo">$0</b></div>
+        <div><span>Transferencia</span><b id="cjTransfer">$0</b></div>
+        <div><span>Gastos</span><b id="cjGastos">$0</b></div>
+      </div>
+      <div class="ct-caja" id="cjEnCaja"></div>
+    </section>
+
+    <div class="caja-acc">
+      <button class="btn btn-primary" type="button" id="btnCobrar">+ Cobrar</button>
+      <button class="btn btn-ghost" type="button" id="btnGasto">− Gasto</button>
+    </div>
+
+    <!-- Cobrar -->
+    <form id="formCobro" class="box caja-form hidden" novalidate>
+      <h2>Cobrar</h2>
+      <div class="seg" role="group" aria-label="Tipo de visita">
+        <button type="button" data-cita="no" aria-pressed="true">Sin cita</button>
+        <button type="button" data-cita="si" aria-pressed="false">Con cita</button>
+      </div>
+      <div class="serv-grid" id="cjServicios"></div>
+      <div class="fila">
+        <label>Monto<input id="cjMonto" type="number" inputmode="numeric" min="1" max="20000" placeholder="$"></label>
+        <label>Propina <span class="hint">opcional</span><input id="cjPropina" type="number" inputmode="numeric" min="0" max="5000" placeholder="$0"></label>
+      </div>
+      <div class="seg" role="group" aria-label="Forma de pago" id="cjMetodo">
+        <button type="button" data-metodo="efectivo" aria-pressed="true">💵 Efectivo</button>
+        <button type="button" data-metodo="transferencia" aria-pressed="false">📲 Transferencia</button>
+      </div>
+      <label id="cjBarberoWrap" class="hidden">Barbero<select id="cjBarbero"></select></label>
+      <div class="caja-guardar">
+        <button class="btn btn-ghost" type="button" data-cerrar>Cancelar</button>
+        <button class="btn btn-primary" type="submit" id="cjGuardar">Guardar cobro</button>
+      </div>
+      <div class="aviso error hidden" id="cjAviso" role="alert"></div>
+    </form>
+
+    <!-- Gasto -->
+    <form id="formGasto" class="box caja-form hidden" novalidate>
+      <h2>Gasto</h2>
+      <label>¿En qué?<input id="gConcepto" maxlength="60" placeholder="ej. Navajas, cera, luz" list="gSugerencias"></label>
+      <datalist id="gSugerencias"><option value="Navajas"><option value="Cera / producto"><option value="Toallas"><option value="Luz"><option value="Renta"><option value="Comida"></datalist>
+      <label>Monto<input id="gMonto" type="number" inputmode="numeric" min="1" max="100000" placeholder="$"></label>
+      <div class="seg" role="group" aria-label="Pagado con" id="gMetodo">
+        <button type="button" data-metodo="efectivo" aria-pressed="true">💵 Efectivo</button>
+        <button type="button" data-metodo="transferencia" aria-pressed="false">📲 Transferencia</button>
+      </div>
+      <div class="caja-guardar">
+        <button class="btn btn-ghost" type="button" data-cerrar>Cancelar</button>
+        <button class="btn btn-primary" type="submit" id="gGuardar">Guardar gasto</button>
+      </div>
+      <div class="aviso error hidden" id="gAviso" role="alert"></div>
+    </form>
+
+    <div class="mov-head">
+      <h2 class="display" style="font-size:26px">Movimientos</h2>
+      <button class="btn btn-ghost btn-sm" type="button" id="btnCajaCSV">Descargar Excel</button>
+    </div>
+    <div id="listaMov" class="movs"><p class="muted">Cargando…</p></div>
+    <div id="avisoCaja" class="aviso error hidden" role="alert"></div>
     </div>
 
     <!-- ===== Clientes ===== -->
@@ -189,6 +266,10 @@
 
     <!-- ===== Promos ===== -->
     <div id="tab-promos" class="tab hidden" role="tabpanel">
+    <div class="sub-tabs" role="group" aria-label="Más opciones">
+      <button type="button" data-ir="numeros" aria-pressed="false">Números</button>
+      <button type="button" data-ir="promos" aria-pressed="true">Promos y página</button>
+    </div>
     <h1 class="display" style="font-size:44px">Promos <span class="script" style="display:inline;font-size:1em">y premios</span></h1>
     <p class="muted" style="font-size:14px;margin:8px 0 0">Las promos solo para un cliente se agregan desde su tarjeta, en <b>Sellar</b>.</p>
 
@@ -251,6 +332,10 @@
 
     <!-- ===== Números ===== -->
     <div id="tab-numeros" class="tab hidden" role="tabpanel">
+    <div class="sub-tabs" role="group" aria-label="Más opciones">
+      <button type="button" data-ir="numeros" aria-pressed="true">Números</button>
+      <button type="button" data-ir="promos" aria-pressed="false">Promos y página</button>
+    </div>
     <h1 class="display" style="font-size:44px">Tus <span class="script" style="display:inline;font-size:1em">números</span></h1>
     <p class="muted" style="font-size:14px;margin:8px 0 0" id="numMes"></p>
 
@@ -347,13 +432,17 @@ function pintarLista(el, docs, vacio) {
 let tabActual = "sellar";
 function irA(tab) {
   tabActual = tab;
-  document.querySelectorAll(".tab-btn").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+  const grupo = (tab === "promos" || tab === "numeros") ? "numeros" : tab;
+  document.querySelectorAll(".tab-btn").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === grupo)));
+  document.querySelectorAll(".sub-tabs [data-ir]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ir === tab)));
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("hidden", t.id !== "tab-" + tab));
   window.scrollTo({ top: 0, behavior: "smooth" });
   if (tab === "clientes") cargarListas();
   if (tab === "numeros") cargarNumeros();
   if (tab === "citas") pintarCitas();
+  if (tab === "caja") pintarCaja();
 }
+document.querySelectorAll(".sub-tabs [data-ir]").forEach(b => b.addEventListener("click", () => irA(b.dataset.ir)));
 document.querySelectorAll(".tab-btn").forEach(b => b.addEventListener("click", () => irA(b.dataset.tab)));
 
 // ---------- Clientes (se cargan todos; para una barbería son pocos) ----------
@@ -635,6 +724,10 @@ function htmlCita(c) {
     `<a class="btn btn-ghost" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`;
   if (c.estado === "confirmada") acciones += `<button class="btn btn-ghost" type="button" data-acc="novino">No vino</button>`;
   if (abierta) acciones += `<button class="btn btn-peligro" type="button" data-acc="cancelar">Cancelar</button>`;
+  if (c.estado === "atendida" && !c.cobrada) acciones +=
+    `<button class="btn btn-primary" type="button" data-acc="cobrar-efectivo">💵 Cobrar ${pesos(c.precio)}</button>` +
+    `<button class="btn btn-ghost" type="button" data-acc="cobrar-transferencia">📲 Transferencia</button>`;
+  if (c.estado === "atendida" && c.cobrada) acciones += `<span class="cobrada">✓ Cobrada</span>`;
   if (c.estado === "atendida") acciones += `<button class="btn btn-ghost" type="button" data-acc="tarjeta">Ver su tarjeta</button>`;
   if (c.estado === "novino" || c.estado === "cancelada") acciones += `<button class="btn btn-ghost" type="button" data-acc="reabrir">Reabrir</button>`;
   return `<article class="cita${nueva ? " nueva" : ""}" data-id="${escapar(c.id)}"${abierta ? "" : ' style="opacity:.72"'}>
@@ -702,6 +795,7 @@ async function atenderCita(c, boton) {
     const ok = await accion("sello", selloCambio, r => (unidas ? "Tenía tarjeta repetida, ya se juntaron en una. " : "") + selloMensaje(r));
     if (!ok) { boton.disabled = false; boton.textContent = "Llegó · sellar"; return; }
     await updateDoc(doc(db, "citas", c.id), { estado: "atendida", clienteId: id, actualizado: serverTimestamp(), por: auth.currentUser?.email || "" });
+    if (!c.cobrada) mostrarCobroRapido(c);
   } catch (ex) {
     console.error(ex);
     alert("No se pudo sellar. Intenta de nuevo o búscalo por su WhatsApp en Sellar.");
@@ -721,7 +815,210 @@ $("listaCitas").addEventListener("click", async (e) => {
   if (acc === "cancelar") { if (confirm(`¿Cancelar la cita de ${c.nombre}?`)) cambiarEstado(c, "cancelada"); return; }
   if (acc === "reabrir") return cambiarEstado(c, "confirmada");
   if (acc === "tarjeta") return abrirCliente(c.clienteId);
+  if (acc === "cobrar-efectivo" || acc === "cobrar-transferencia") {
+    b.disabled = true;
+    try { await cobrarCita(c, acc === "cobrar-efectivo" ? "efectivo" : "transferencia"); }
+    catch (ex) { console.error(ex); b.disabled = false; alert("No se pudo cobrar. Intenta de nuevo."); }
+    return;
+  }
 });
+
+
+// ---------- Caja ----------
+let movs = [];                 // movimientos de la semana y el mes
+let periodo = "hoy";
+let cobroConCita = false, metodoCobro = "efectivo", metodoGasto = "efectivo", servSel = null;
+const ahoraHHMM = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+function inicioSemana() { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return fechaISO(d); }   // lunes
+function inicioMes() { const d = new Date(); return fechaISO(new Date(d.getFullYear(), d.getMonth(), 1)); }
+const barberosReales = () => (NEGOCIO.barberos || []).filter(b => b.nombre && !/^\s*\[/.test(b.nombre));
+
+function escucharCaja() {
+  const desde = [inicioSemana(), inicioMes()].sort()[0];
+  onSnapshot(query(collection(db, "caja"), where("fecha", ">=", desde)), (snap) => {
+    movs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    $("avisoCaja").classList.add("hidden");
+    if (tabActual === "caja") pintarCaja();
+  }, (ex) => {
+    console.error(ex);
+    $("listaMov").innerHTML = "";
+    $("avisoCaja").textContent = "No se pudo cargar la caja. Revisa que hayas pegado las reglas nuevas en Firestore.";
+    $("avisoCaja").classList.remove("hidden");
+  });
+}
+
+function movsDelPeriodo() {
+  const hoy = fechaISO(new Date());
+  const desde = periodo === "hoy" ? hoy : periodo === "semana" ? inicioSemana() : inicioMes();
+  return movs.filter(m => m.fecha >= desde && m.fecha <= hoy);
+}
+
+function pintarCaja() {
+  document.querySelectorAll("[data-periodo]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.periodo === periodo)));
+  const lista = movsDelPeriodo();
+  const ing = lista.filter(m => m.tipo === "ingreso"), gas = lista.filter(m => m.tipo === "gasto");
+  const suma = (arr) => arr.reduce((s, m) => s + (Number(m.monto) || 0) + (Number(m.propina) || 0), 0);
+  const entro = suma(ing), gastos = suma(gas);
+  const efectivo = suma(ing.filter(m => m.metodo === "efectivo")), transfer = suma(ing.filter(m => m.metodo === "transferencia"));
+  const propinas = ing.reduce((s, m) => s + (Number(m.propina) || 0), 0);
+  $("cjEtiqueta").textContent = { hoy: "Entró hoy", semana: "Entró esta semana", mes: "Entró este mes" }[periodo];
+  $("cjTotal").textContent = pesos(entro);
+  $("cjSub").textContent = ing.length
+    ? `${ing.length} cobro${ing.length === 1 ? "" : "s"}${propinas ? " · propinas " + pesos(propinas) : ""}${gastos ? " · quedan " + pesos(entro - gastos) + " después de gastos" : ""}`
+    : "Sin cobros todavía";
+  $("cjEfectivo").textContent = pesos(efectivo);
+  $("cjTransfer").textContent = pesos(transfer);
+  $("cjGastos").textContent = gastos ? "−" + pesos(gastos) : "$0";
+  const enCaja = efectivo - suma(gas.filter(m => m.metodo === "efectivo"));
+  $("cjEnCaja").innerHTML = periodo === "hoy" && lista.length ? `💵 Debe haber <b>${pesos(enCaja)}</b> en efectivo en la caja` : "";
+
+  const el = $("listaMov");
+  if (!lista.length) { el.innerHTML = `<p class="muted">${periodo === "hoy" ? "Hoy no hay movimientos. Toca <b>+ Cobrar</b> para anotar el primero." : "No hay movimientos en este periodo."}</p>`; return; }
+  const orden = [...lista].sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+  let html = "", dia = "";
+  orden.forEach(m => {
+    if (periodo !== "hoy" && m.fecha !== dia) {
+      dia = m.fecha;
+      const delDia = lista.filter(x => x.fecha === dia && x.tipo === "ingreso");
+      html += `<div class="mov-dia"><span>${fechaTitulo(dia)}</span><b>${pesos(suma(delDia))}</b></div>`;
+    }
+    const gasto = m.tipo === "gasto";
+    const meta = [hora12(m.hora), m.metodo === "transferencia" ? "Transferencia" : "Efectivo", m.barbero, m.propina ? "propina " + pesos(m.propina) : ""].filter(Boolean).join(" · ");
+    html += `<div class="mov${gasto ? " gasto" : ""}" data-id="${escapar(m.id)}">
+      <span class="mov-ico" aria-hidden="true">${gasto ? "−" : "+"}</span>
+      <div class="mov-txt"><b>${escapar(m.concepto)}</b><span>${escapar(meta)}</span></div>
+      <b class="mov-monto">${gasto ? "−" : ""}${pesos((Number(m.monto) || 0) + (Number(m.propina) || 0))}</b>
+      <button type="button" class="mov-borrar" data-borrar aria-label="Borrar ${escapar(m.concepto)}">×</button>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+document.querySelectorAll("[data-periodo]").forEach(b => b.addEventListener("click", () => { periodo = b.dataset.periodo; pintarCaja(); }));
+
+$("listaMov").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-borrar]");
+  if (!b) return;
+  const m = movs.find(x => x.id === b.closest(".mov").dataset.id);
+  if (!m || !confirm(`¿Borrar "${m.concepto}" de ${pesos((Number(m.monto) || 0) + (Number(m.propina) || 0))}?`)) return;
+  try {
+    await deleteDoc(doc(db, "caja", m.id));
+    if (m.citaId) await updateDoc(doc(db, "citas", m.citaId), { cobrada: false }).catch(() => {});
+  } catch (ex) { console.error(ex); alert("No se pudo borrar. Intenta de nuevo."); }
+});
+
+// --- Formulario de cobro
+function pintarServiciosCaja() {
+  $("cjServicios").innerHTML = NEGOCIO.servicios.map(sv => {
+    const precio = cobroConCita ? sv.conCita : sv.sinCita;
+    return `<button type="button" class="serv" data-serv="${escapar(sv.id)}" aria-pressed="${servSel === sv.id}"><b>${escapar(sv.nombre)}</b><span>${pesos(precio)}</span></button>`;
+  }).join("") + `<button type="button" class="serv" data-serv="otro" aria-pressed="${servSel === "otro"}"><b>Otro</b><span>escribe el monto</span></button>`;
+}
+function seg(grupo, attr, valor) { grupo.querySelectorAll(`[${attr}]`).forEach(b => b.setAttribute("aria-pressed", String(b.getAttribute(attr) === valor))); }
+function abrirForm(cual) {
+  ["formCobro", "formGasto"].forEach(f => $(f).classList.toggle("hidden", f !== cual));
+  $(cual).scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function cerrarForms() { ["formCobro", "formGasto"].forEach(f => { $(f).classList.add("hidden"); $(f).reset(); }); servSel = null; }
+document.querySelectorAll(".caja-form [data-cerrar]").forEach(b => b.addEventListener("click", cerrarForms));
+
+function prepararCobro() {
+  cobroConCita = false; metodoCobro = "efectivo"; servSel = null;
+  seg($("formCobro"), "data-cita", "no"); seg($("cjMetodo"), "data-metodo", "efectivo");
+  $("cjAviso").classList.add("hidden");
+  const bs = barberosReales();
+  $("cjBarberoWrap").classList.toggle("hidden", bs.length < 2);
+  $("cjBarbero").innerHTML = '<option value="">—</option>' + bs.map(b => `<option>${escapar(b.nombre)}</option>`).join("");
+  pintarServiciosCaja();
+  abrirForm("formCobro");
+}
+$("btnCobrar").addEventListener("click", prepararCobro);
+$("btnGasto").addEventListener("click", () => { metodoGasto = "efectivo"; seg($("gMetodo"), "data-metodo", "efectivo"); $("gAviso").classList.add("hidden"); abrirForm("formGasto"); $("gConcepto").focus(); });
+
+$("formCobro").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-cita]");
+  if (c) { cobroConCita = c.dataset.cita === "si"; seg($("formCobro"), "data-cita", c.dataset.cita);
+    const sv = NEGOCIO.servicios.find(x => x.id === servSel); if (sv) $("cjMonto").value = cobroConCita ? sv.conCita : sv.sinCita;
+    pintarServiciosCaja(); return; }
+  const s2 = e.target.closest("[data-serv]");
+  if (s2) { servSel = s2.dataset.serv; const sv = NEGOCIO.servicios.find(x => x.id === servSel);
+    $("cjMonto").value = sv ? (cobroConCita ? sv.conCita : sv.sinCita) : ""; if (!sv) $("cjMonto").focus();
+    pintarServiciosCaja(); return; }
+  const m = e.target.closest("#cjMetodo [data-metodo]");
+  if (m) { metodoCobro = m.dataset.metodo; seg($("cjMetodo"), "data-metodo", metodoCobro); }
+});
+$("gMetodo").addEventListener("click", (e) => { const m = e.target.closest("[data-metodo]"); if (m) { metodoGasto = m.dataset.metodo; seg($("gMetodo"), "data-metodo", metodoGasto); } });
+
+async function guardarMov(datos) {
+  await addDoc(collection(db, "caja"), { ...datos, fecha: fechaISO(new Date()), hora: ahoraHHMM(), creado: serverTimestamp(), por: auth.currentUser?.email || "" });
+}
+
+$("formCobro").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const monto = Number($("cjMonto").value), propina = Number($("cjPropina").value) || 0;
+  const aviso = $("cjAviso"); aviso.classList.add("hidden");
+  if (!servSel) { aviso.textContent = "Elige qué se cobró."; aviso.classList.remove("hidden"); return; }
+  if (!(monto > 0)) { aviso.textContent = "Escribe el monto."; aviso.classList.remove("hidden"); return; }
+  const sv = NEGOCIO.servicios.find(x => x.id === servSel);
+  $("cjGuardar").disabled = true;
+  try {
+    await guardarMov({ tipo: "ingreso", concepto: (sv ? sv.nombre : "Otro") + (cobroConCita ? " (cita)" : ""), servicioId: sv ? sv.id : "otro",
+      conCita: cobroConCita, monto, propina, metodo: metodoCobro, barbero: $("cjBarbero").value || "" });
+    cerrarForms(); periodo = "hoy"; pintarCaja();
+  } catch (ex) { console.error(ex); aviso.textContent = "No se pudo guardar. Revisa que hayas pegado las reglas nuevas."; aviso.classList.remove("hidden"); }
+  $("cjGuardar").disabled = false;
+});
+
+$("formGasto").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const concepto = $("gConcepto").value.trim(), monto = Number($("gMonto").value);
+  const aviso = $("gAviso"); aviso.classList.add("hidden");
+  if (!concepto || !(monto > 0)) { aviso.textContent = "Escribe en qué fue y cuánto."; aviso.classList.remove("hidden"); return; }
+  $("gGuardar").disabled = true;
+  try { await guardarMov({ tipo: "gasto", concepto, monto, propina: 0, metodo: metodoGasto }); cerrarForms(); }
+  catch (ex) { console.error(ex); aviso.textContent = "No se pudo guardar. Revisa que hayas pegado las reglas nuevas."; aviso.classList.remove("hidden"); }
+  $("gGuardar").disabled = false;
+});
+
+$("btnCajaCSV").addEventListener("click", () => {
+  const lista = movsDelPeriodo().sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+  if (!lista.length) { alert("No hay movimientos en este periodo."); return; }
+  const celda = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const filas = [["Fecha", "Hora", "Tipo", "Concepto", "Forma de pago", "Monto", "Propina", "Total", "Barbero"]];
+  lista.forEach(m => filas.push([m.fecha, m.hora, m.tipo === "gasto" ? "Gasto" : "Cobro", m.concepto, m.metodo === "transferencia" ? "Transferencia" : "Efectivo",
+    (m.tipo === "gasto" ? -1 : 1) * (Number(m.monto) || 0), Number(m.propina) || 0, (m.tipo === "gasto" ? -1 : 1) * ((Number(m.monto) || 0) + (Number(m.propina) || 0)), m.barbero || ""]));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + filas.map(f => f.map(celda).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
+  a.download = `caja-traffic-barber-${periodo}-${fechaISO(new Date())}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+});
+
+// --- Cobrar una cita con un toque
+async function cobrarCita(c, metodo) {
+  await guardarMov({ tipo: "ingreso", concepto: c.servicio + " (cita)", servicioId: c.servicioId || "", conCita: true,
+    monto: Number(c.precio) || 0, propina: 0, metodo, barbero: c.barbero || "", citaId: c.id, clienteId: c.clienteId || "" });
+  await updateDoc(doc(db, "citas", c.id), { cobrada: true });
+}
+
+function mostrarCobroRapido(c) {
+  const el = $("cobroRapido");
+  if (c) {
+    el.innerHTML = `<span>Cobrar <b>${pesos(c.precio)}</b> · ${escapar(c.servicio)}</span>
+      <div><button class="btn btn-primary btn-sm" type="button" data-metodo="efectivo">💵 Efectivo</button>
+      <button class="btn btn-ghost btn-sm" type="button" data-metodo="transferencia">📲 Transferencia</button></div>`;
+    el.onclick = async (e) => {
+      const b = e.target.closest("[data-metodo]"); if (!b) return;
+      el.querySelectorAll("button").forEach(x => x.disabled = true);
+      try { await cobrarCita(c, b.dataset.metodo); el.innerHTML = `<span>✓ Cobrado ${pesos(c.precio)} en ${b.dataset.metodo}</span>`; }
+      catch (ex) { console.error(ex); el.querySelectorAll("button").forEach(x => x.disabled = false); alert("No se pudo cobrar. Intenta de nuevo."); }
+    };
+  } else {
+    el.innerHTML = `<span>¿Ya pagó?</span><div><button class="btn btn-primary btn-sm" type="button">Cobrar en Caja →</button></div>`;
+    el.onclick = (e) => { if (e.target.closest("button")) { irA("caja"); prepararCobro(); } };
+  }
+  el.classList.remove("hidden");
+}
 
 // ---------- Buscar ----------
 $("buscarTel").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
@@ -849,6 +1146,7 @@ async function abrirCliente(id) {
   $("resultados").innerHTML = "";
   $("avisoBuscar").classList.add("hidden");
   $("dMsg").classList.add("hidden");
+  $("cobroRapido").classList.add("hidden");
   let snap = await getDoc(doc(db, "clientes", id)).catch(() => null);
   // Tarjeta duplicada que ya se unió a otra: abrir la buena
   if (snap && snap.exists() && snap.data().unidoA) { id = snap.data().unidoA; snap = await getDoc(doc(db, "clientes", id)).catch(() => null); }
@@ -930,7 +1228,7 @@ const selloMensaje = r => {
   if (r.sellos >= MITAD.en && !r.facialCanjeado) return `Visita sellada ✓ ¡Hoy le toca su ${MITAD.texto.toLowerCase()}!`;
   return "Visita sellada ✓";
 };
-$("aSellar").addEventListener("click", () => accion("sello", selloCambio, selloMensaje));
+$("aSellar").addEventListener("click", async () => { if (await accion("sello", selloCambio, selloMensaje)) mostrarCobroRapido(null); });
 $("aQuitar").addEventListener("click", () => {
   if (!confirm("¿Quitar el último sello?")) return;
   accion("quitar",
@@ -1193,6 +1491,7 @@ if (!configurado) {
       escucharConfig();
       escucharResenas();
       escucharCitas();
+      escucharCaja();
     }
   });
 }

@@ -1,5 +1,5 @@
 // Datos en vivo desde el panel de admin: promociones, premios y reseñas.
-import { db, configurado, escapar } from "./firebase.js";
+import { db, configurado, escapar, premioCorto } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 import { collection, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -36,6 +36,10 @@ function pintarPremios(cfg = {}) {
   document.querySelectorAll("[data-premio]").forEach((el) => {
     const t = textos[el.dataset.premio];
     if (t && !/^\s*\[/.test(t)) el.textContent = t.charAt(0).toLowerCase() + t.slice(1);
+  });
+  document.querySelectorAll("[data-premio-corto]").forEach((el) => {
+    const t = textos[el.dataset.premioCorto];
+    if (t && !/^\s*\[/.test(t)) { el.textContent = premioCorto(t); el.title = t; }
   });
 }
 
