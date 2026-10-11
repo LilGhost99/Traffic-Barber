@@ -150,7 +150,36 @@
     <!-- ===== Citas ===== -->
     <div id="tab-citas" class="tab hidden" role="tabpanel">
     <h1 class="display" style="font-size:44px">Tus <span class="script" style="display:inline;font-size:1em">citas</span></h1>
-    <p class="muted" style="font-size:14px;margin:8px 0 0;line-height:1.5">Las que piden desde la página. Cuando te llegue su WhatsApp, regístrala en Confirmafy y dale <b>Confirmar</b>. Cuando llegue el cliente, dale <b>Llegó</b> y se le pone su sello.</p>
+    <p class="muted" style="font-size:14px;margin:8px 0 0;line-height:1.5">Aquí cae todo: lo que agendan en la página y lo que agendes tú. Dale <b>Confirmar</b> y mándale su WhatsApp. Cuando llegue, dale <b>Llegó</b> y se le pone su sello.</p>
+    <button class="btn btn-primary btn-block" type="button" id="btnNuevaCita" style="margin-top:14px">+ Agendar cita o walk-in</button>
+
+    <form id="formAgenda" class="box caja-form hidden" novalidate>
+      <h2>Agendar</h2>
+      <div class="seg" role="group" aria-label="Para cuándo" id="agCuando">
+        <button type="button" data-cuando="ahora" aria-pressed="true">🚶 Walk-in ahora</button>
+        <button type="button" data-cuando="luego" aria-pressed="false">📅 Otra hora</button>
+      </div>
+      <div id="agFechaWrap" class="hidden">
+        <label>Día<input id="agFecha" type="date"></label>
+        <div class="ag-horas" id="agHoras" role="group" aria-label="Hora"></div>
+      </div>
+      <label>WhatsApp<span class="hint"> · 10 dígitos</span><input id="agTel" type="tel" inputmode="numeric" maxlength="10" placeholder="7711234567"></label>
+      <div id="agCliente" class="ag-cliente hidden" role="status"></div>
+      <label>Nombre<input id="agNombre" maxlength="40" placeholder="Cómo se llama"></label>
+      <div id="agCumple" class="fila hidden">
+        <label><span class="hint">Cumple · día</span><select id="agDia"></select></label>
+        <label><span class="hint">mes (opcional)</span><select id="agMes"></select></label>
+      </div>
+      <div class="serv-grid" id="agServicios"></div>
+      <label id="agBarberoWrap" class="hidden">Barbero<select id="agBarbero"></select></label>
+      <label>Nota <span class="hint">opcional</span><input id="agNota" maxlength="120" placeholder="ej. trae a su hijo"></label>
+      <div class="caja-guardar">
+        <button class="btn btn-ghost" type="button" id="agCancelar">Cancelar</button>
+        <button class="btn btn-primary" type="submit" id="agGuardar">Guardar y sellar</button>
+      </div>
+      <div class="aviso error hidden" id="agAviso" role="alert"></div>
+    </form>
+    <div id="agListo" class="cobro-rapido hidden" role="status"></div>
     <div class="filtros" role="group" aria-label="Qué citas ver">
       <button class="filtro" type="button" data-filtro="hoy" aria-pressed="true">Hoy</button>
       <button class="filtro" type="button" data-filtro="proximas" aria-pressed="false">Próximas</button>
@@ -178,6 +207,7 @@
       <div class="ct-split">
         <div><span>Efectivo</span><b id="cjEfectivo">$0</b></div>
         <div><span>Transferencia</span><b id="cjTransfer">$0</b></div>
+        <div><span>Terminal</span><b id="cjTerminal">$0</b></div>
         <div><span>Gastos</span><b id="cjGastos">$0</b></div>
       </div>
       <div class="ct-caja" id="cjEnCaja"></div>
@@ -202,7 +232,8 @@
       </div>
       <div class="seg" role="group" aria-label="Forma de pago" id="cjMetodo">
         <button type="button" data-metodo="efectivo" aria-pressed="true">💵 Efectivo</button>
-        <button type="button" data-metodo="transferencia" aria-pressed="false">📲 Transferencia</button>
+        <button type="button" data-metodo="transferencia" aria-pressed="false">📲 Transfer</button>
+        <button type="button" data-metodo="terminal" aria-pressed="false">💳 Terminal</button>
       </div>
       <label id="cjBarberoWrap" class="hidden">Barbero<select id="cjBarbero"></select></label>
       <div class="caja-guardar">
@@ -220,7 +251,8 @@
       <label>Monto<input id="gMonto" type="number" inputmode="numeric" min="1" max="100000" placeholder="$"></label>
       <div class="seg" role="group" aria-label="Pagado con" id="gMetodo">
         <button type="button" data-metodo="efectivo" aria-pressed="true">💵 Efectivo</button>
-        <button type="button" data-metodo="transferencia" aria-pressed="false">📲 Transferencia</button>
+        <button type="button" data-metodo="transferencia" aria-pressed="false">📲 Transfer</button>
+        <button type="button" data-metodo="terminal" aria-pressed="false">💳 Tarjeta</button>
       </div>
       <div class="caja-guardar">
         <button class="btn btn-ghost" type="button" data-cerrar>Cancelar</button>
@@ -644,6 +676,8 @@ const fechaISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
 const deISO = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
 const hora12 = (hhmm) => { const [h, m] = (hhmm || "0:0").split(":").map(Number); return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`; };
 const pesos = (n) => "$" + Number(n || 0).toLocaleString("es-MX");
+const METODOS = { efectivo: "Efectivo", transferencia: "Transferencia", terminal: "Terminal" };
+const metodoTxt = (m) => METODOS[m] || "Efectivo";
 const folioDe = (id) => "TB-" + id.slice(0, 5).toUpperCase();
 const ESTADOS = {
   pendiente: "Nueva · por confirmar",
@@ -677,6 +711,7 @@ function escucharCitas() {
     idsVistos = new Set(nuevas.map(c => c.id));
     citas = nuevas;
     citasCargadas = true;
+    sincronizarOcupados();
     $("avisoCitas").classList.add("hidden");
     pintarBadge();
     if (tabActual === "citas") pintarCitas();
@@ -708,6 +743,7 @@ function citasFiltradas(f) {
 function htmlCita(c) {
   const nueva = recienLlegadas.has(c.id) && c.estado === "pendiente";
   const extras = [
+    c.origen === "walkin" ? `<span class="oro">🚶 Walk-in</span>` : c.origen === "panel" ? `<span>📅 Agendada en el panel</span>` : "",
     c.barbero ? `<span>Con ${escapar(c.barbero)}</span>` : "",
     c.promo ? `<span class="oro">Promo: ${escapar(c.promo)}</span>` : "",
     c.comentario ? `<span>📝 ${escapar(c.comentario)}</span>` : ""
@@ -718,7 +754,7 @@ function htmlCita(c) {
     `${c.servicio}, el ${fechaTitulo(c.fecha).replace(/^(Hoy|Mañana) · /, "")} a las ${hora12(c.hora)}. ¡Te esperamos! (${folioDe(c.id)})`);
   let acciones = "";
   if (c.estado === "pendiente") acciones +=
-    `<button class="btn btn-primary" type="button" data-acc="confirmar">✓ Confirmar</button>`;
+    `<a class="btn btn-primary" href="${wa}" target="_blank" rel="noopener" data-acc="confirmar">✓ Confirmar y avisar</a>`;
   if (abierta) acciones +=
     `<button class="btn ${c.estado === "confirmada" ? "btn-primary" : "btn-ghost"}" type="button" data-acc="llego">Llegó · sellar</button>` +
     `<a class="btn btn-ghost" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`;
@@ -726,10 +762,12 @@ function htmlCita(c) {
   if (abierta) acciones += `<button class="btn btn-peligro" type="button" data-acc="cancelar">Cancelar</button>`;
   if (c.estado === "atendida" && !c.cobrada) acciones +=
     `<button class="btn btn-primary" type="button" data-acc="cobrar-efectivo">💵 Cobrar ${pesos(c.precio)}</button>` +
-    `<button class="btn btn-ghost" type="button" data-acc="cobrar-transferencia">📲 Transferencia</button>`;
+    `<button class="btn btn-ghost" type="button" data-acc="cobrar-transferencia">📲 Transferencia</button>` +
+    `<button class="btn btn-ghost" type="button" data-acc="cobrar-terminal">💳 Terminal</button>`;
   if (c.estado === "atendida" && c.cobrada) acciones += `<span class="cobrada">✓ Cobrada</span>`;
   if (c.estado === "atendida") acciones += `<button class="btn btn-ghost" type="button" data-acc="tarjeta">Ver su tarjeta</button>`;
   if (c.estado === "novino" || c.estado === "cancelada") acciones += `<button class="btn btn-ghost" type="button" data-acc="reabrir">Reabrir</button>`;
+  acciones += `<button class="btn-borrar" type="button" data-acc="borrar" aria-label="Borrar cita de ${escapar(c.nombre)}">🗑 Borrar</button>`;
   return `<article class="cita${nueva ? " nueva" : ""}" data-id="${escapar(c.id)}"${abierta ? "" : ' style="opacity:.72"'}>
     <div class="cita-top">
       <div><div class="cita-hora">${hora12(c.hora)}</div>
@@ -737,7 +775,7 @@ function htmlCita(c) {
       <span class="estado-c ${escapar(c.estado)}">${ESTADOS[c.estado] || escapar(c.estado)}</span>
     </div>
     <div class="cita-serv"><b>${escapar(c.servicio)}</b><span class="precio">${c.precioNormal > c.precio ? `<s class="tachado">${pesos(c.precioNormal)}</s> ` : ""}${pesos(c.precio)}</span></div>
-    <div class="cita-inc">Incluye: ${escapar(NEGOCIO.beneficios.conCita.join(" · "))} · sello en su tarjeta</div>
+    <div class="cita-inc">${c.origen === "walkin" ? "Sin cita · sello en su tarjeta" : "Incluye: " + escapar(NEGOCIO.beneficios.conCita.join(" · ")) + " · sello en su tarjeta"}</div>
     ${extras ? `<div class="cita-extra">${extras}</div>` : ""}
     ${c.nuevaTarjeta && abierta ? `<div class="cita-aviso">Se le creó tarjeta al agendar. Si ya tenía otra, se unen solas al darle <b>Llegó</b>.</div>` : ""}
     <div class="cita-acc">${acciones}</div>
@@ -765,8 +803,38 @@ function pintarCitas() {
 document.querySelectorAll(".filtro").forEach(b => b.addEventListener("click", () => { filtroCitas = b.dataset.filtro; pintarCitas(); }));
 
 async function cambiarEstado(c, estado) {
-  try { await updateDoc(doc(db, "citas", c.id), { estado, actualizado: serverTimestamp(), por: auth.currentUser?.email || "" }); }
+  try {
+    await updateDoc(doc(db, "citas", c.id), { estado, actualizado: serverTimestamp(), por: auth.currentUser?.email || "" });
+    if (estado === "cancelada" || estado === "novino") await liberarHora(c);
+    if (estado === "confirmada" && (c.estado === "cancelada" || c.estado === "novino")) await apartarHora(c.fecha, c.hora);
+  }
   catch (ex) { console.error(ex); alert("No se pudo guardar. Intenta de nuevo."); }
+}
+
+// ---------- Horas apartadas (lo que ve la página para no agendar encima) ----------
+const ACTIVAS = ["pendiente", "confirmada", "atendida"];
+const slotDe = (fecha, hora) => `${fecha}_${hora}`;
+function apartarHora(fecha, hora) {
+  return setDoc(doc(db, "ocupados", slotDe(fecha, hora)), { fecha, hora, creado: serverTimestamp() });
+}
+async function liberarHora(c) {
+  const otra = citas.some(x => x.id !== c.id && x.fecha === c.fecha && x.hora === c.hora && ACTIVAS.includes(x.estado));
+  if (!otra) await deleteDoc(doc(db, "ocupados", slotDe(c.fecha, c.hora))).catch(ex => console.error(ex));
+}
+// Citas que ya existían antes de este cambio: se apartan una sola vez
+const yaApartadas = new Set();
+function sincronizarOcupados() {
+  const hoy = fechaISO(new Date());
+  citas.filter(c => c.fecha >= hoy && (c.estado === "pendiente" || c.estado === "confirmada") && !yaApartadas.has(c.id) && c.origen !== "walkin")
+    .forEach(c => { yaApartadas.add(c.id); apartarHora(c.fecha, c.hora).catch(ex => console.error(ex)); });
+}
+
+async function borrarCita(c) {
+  if (!confirm(`¿Borrar la cita de ${c.nombre} (${hora12(c.hora)})? Se quita del panel y la hora queda libre.`)) return;
+  try {
+    await deleteDoc(doc(db, "citas", c.id));
+    await liberarHora(c);
+  } catch (ex) { console.error(ex); alert("No se pudo borrar. Intenta de nuevo."); }
 }
 
 // Si el cliente tiene más de una tarjeta con el mismo WhatsApp, se juntan en la más antigua.
@@ -814,13 +882,159 @@ $("listaCitas").addEventListener("click", async (e) => {
   if (acc === "novino") { if (confirm(`¿Marcar que ${c.nombre} no vino?`)) cambiarEstado(c, "novino"); return; }
   if (acc === "cancelar") { if (confirm(`¿Cancelar la cita de ${c.nombre}?`)) cambiarEstado(c, "cancelada"); return; }
   if (acc === "reabrir") return cambiarEstado(c, "confirmada");
+  if (acc === "borrar") return borrarCita(c);
   if (acc === "tarjeta") return abrirCliente(c.clienteId);
-  if (acc === "cobrar-efectivo" || acc === "cobrar-transferencia") {
+  if (acc.startsWith("cobrar-")) {
     b.disabled = true;
-    try { await cobrarCita(c, acc === "cobrar-efectivo" ? "efectivo" : "transferencia"); }
+    try { await cobrarCita(c, acc.slice(7)); }
     catch (ex) { console.error(ex); b.disabled = false; alert("No se pudo cobrar. Intenta de nuevo."); }
     return;
   }
+});
+
+// ---------- Agendar desde el panel (walk-ins y citas por teléfono) ----------
+let agCuando = "ahora", agServ = null, agHora = "", agClienteId = "", agBuscado = "";
+const horaCortaA = (hhmm) => { const h = Number(hhmm.split(":")[0]); return `${((h + 11) % 12) + 1} ${h < 12 ? "am" : "pm"}`; };
+function horasDelDia() {
+  const c = NEGOCIO.citas, aM = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; }, out = [];
+  for (let m = aM(c.primera); m <= aM(c.ultima); m += c.cadaMinutos) out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
+  return out;
+}
+function pintarAgHoras() {
+  const f = $("agFecha").value;
+  if (!f) { $("agHoras").innerHTML = ""; return; }
+  const d = deISO(f);
+  if (!NEGOCIO.horario.dias.includes(d.getDay())) { $("agHoras").innerHTML = `<p class="muted" style="grid-column:1/-1;margin:0">Ese día está cerrado.</p>`; agHora = ""; return; }
+  const ahora = new Date(), esHoy = f === fechaISO(ahora), minAhora = ahora.getHours() * 60 + ahora.getMinutes();
+  const ocup = new Set(citas.filter(c => c.fecha === f && ACTIVAS.includes(c.estado)).map(c => c.hora));
+  $("agHoras").innerHTML = horasDelDia().map(h => {
+    const [hh, mm] = h.split(":").map(Number);
+    const pasada = esHoy && hh * 60 + mm < minAhora - 30;
+    const ocupada = ocup.has(h);
+    if (agHora === h && (ocupada || pasada)) agHora = "";
+    return `<button type="button" data-hora="${h}" aria-pressed="${agHora === h}"${ocupada || pasada ? " disabled" : ""}>${horaCortaA(h)}${ocupada ? "<small>Ocupada</small>" : ""}</button>`;
+  }).join("");
+}
+function pintarAgServicios() {
+  $("agServicios").innerHTML = NEGOCIO.servicios.map(sv => {
+    const precio = agCuando === "ahora" ? sv.sinCita : sv.conCita;
+    return `<button type="button" class="serv" data-serv="${escapar(sv.id)}" aria-pressed="${agServ === sv.id}"><b>${escapar(sv.nombre)}</b><span>${pesos(precio)}</span></button>`;
+  }).join("");
+}
+function ponerCuando(v) {
+  agCuando = v;
+  seg($("agCuando"), "data-cuando", v);
+  $("agFechaWrap").classList.toggle("hidden", v === "ahora");
+  $("agGuardar").textContent = v === "ahora" ? "Guardar y sellar" : "Agendar cita";
+  if (v === "luego") pintarAgHoras();
+  pintarAgServicios();
+}
+function abrirAgenda() {
+  $("formAgenda").reset();
+  agServ = null; agHora = ""; agClienteId = ""; agBuscado = "";
+  $("agFecha").min = fechaISO(new Date());
+  const dia = new Date();
+  while (!NEGOCIO.horario.dias.includes(dia.getDay())) dia.setDate(dia.getDate() + 1);   // el siguiente día abierto
+  $("agFecha").value = fechaISO(dia);
+  $("agDia").innerHTML = '<option value="">Día</option>' + Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
+  $("agMes").innerHTML = '<option value="">Mes</option>' + MESES.map((m, i) => `<option value="${i + 1}">${m[0].toUpperCase() + m.slice(1)}</option>`).join("");
+  const bs = barberosReales();
+  $("agBarberoWrap").classList.toggle("hidden", bs.length < 2);
+  $("agBarbero").innerHTML = '<option value="">Cualquiera</option>' + bs.map(b => `<option>${escapar(b.nombre)}</option>`).join("");
+  $("agCliente").classList.add("hidden"); $("agCumple").classList.add("hidden"); $("agAviso").classList.add("hidden"); $("agListo").classList.add("hidden");
+  ponerCuando("ahora");
+  $("formAgenda").classList.remove("hidden");
+  $("btnNuevaCita").classList.add("hidden");
+  $("agTel").focus();
+}
+function cerrarAgenda() { $("formAgenda").classList.add("hidden"); $("btnNuevaCita").classList.remove("hidden"); }
+$("btnNuevaCita").addEventListener("click", abrirAgenda);
+$("agCancelar").addEventListener("click", cerrarAgenda);
+$("agFecha").addEventListener("change", pintarAgHoras);
+$("formAgenda").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-cuando]"); if (c) return ponerCuando(c.dataset.cuando);
+  const h = e.target.closest("[data-hora]"); if (h && !h.disabled) { agHora = h.dataset.hora; seg($("agHoras"), "data-hora", agHora); return; }
+  const sv = e.target.closest("[data-serv]"); if (sv) { agServ = sv.dataset.serv; pintarAgServicios(); }
+});
+// Al poner el número se busca si ya tiene tarjeta
+$("agTel").addEventListener("input", async (e) => {
+  e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+  const tel = e.target.value;
+  if (tel.length < 10) { agClienteId = ""; agBuscado = ""; $("agCliente").classList.add("hidden"); $("agCumple").classList.add("hidden"); return; }
+  if (tel === agBuscado) return;
+  agBuscado = tel;
+  try {
+    const snap = await getDocs(query(collection(db, "clientes"), where("telefono", "==", tel)));
+    if (tel !== $("agTel").value) return;
+    const cards = snap.docs.filter(d => !d.data().unidoA).sort((a, b) => segundos(a.data().creado) - segundos(b.data().creado));
+    if (cards.length) {
+      const c = cards[0].data();
+      agClienteId = cards[0].id;
+      $("agNombre").value = c.nombre || "";
+      $("agCliente").innerHTML = `✓ Ya tiene tarjeta: <b>${escapar(c.nombre)}</b> · ${c.sellos || 0} de ${NEGOCIO.sellosPorTarjeta} sellos`;
+      $("agCumple").classList.add("hidden");
+    } else {
+      agClienteId = "";
+      $("agCliente").innerHTML = "Cliente nuevo: se le crea su tarjeta de sellos.";
+      $("agCumple").classList.remove("hidden");
+    }
+    $("agCliente").classList.remove("hidden");
+  } catch (ex) { console.error(ex); }
+});
+
+$("formAgenda").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const aviso = $("agAviso"); aviso.classList.add("hidden");
+  const falla = (t) => { aviso.textContent = t; aviso.classList.remove("hidden"); };
+  const telefono = $("agTel").value.trim(), nombre = $("agNombre").value.trim();
+  const sv = NEGOCIO.servicios.find(x => x.id === agServ);
+  const ahora = agCuando === "ahora";
+  const fecha = ahora ? fechaISO(new Date()) : $("agFecha").value;
+  const hora = ahora ? ahoraHHMM() : agHora;
+  if (!/^\d{10}$/.test(telefono)) return falla("El WhatsApp debe tener 10 dígitos.");
+  if (!nombre) return falla("Escribe su nombre.");
+  if (!sv) return falla("Elige el servicio.");
+  if (!ahora && !fecha) return falla("Elige el día.");
+  if (!ahora && !hora) return falla("Elige la hora.");
+  if (!ahora && citas.some(c => c.fecha === fecha && c.hora === hora && ACTIVAS.includes(c.estado))) return falla("Esa hora ya está ocupada. Elige otra.");
+  const btn = $("agGuardar"); btn.disabled = true;
+  try {
+    let clienteId = agClienteId, nuevaTarjeta = false;
+    if (!clienteId) {
+      const d = Number($("agDia").value), m = Number($("agMes").value);
+      const ref = await addDoc(collection(db, "clientes"), {
+        nombre, telefono, cumple: d && m ? String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0") : "",
+        sellos: 0, facialCanjeado: false, tarjetas: 0, creado: serverTimestamp()
+      });
+      clienteId = ref.id; nuevaTarjeta = true;
+    }
+    const ref = doc(collection(db, "citas"));
+    const datos = {
+      nombre, telefono, servicioId: sv.id, servicio: sv.nombre,
+      precio: ahora ? sv.sinCita : sv.conCita, precioNormal: ahora ? sv.sinCita : sv.conCita,
+      fecha, hora, promo: "", barbero: $("agBarbero").value || "", comentario: $("agNota").value.trim().slice(0, 120),
+      clienteId, nuevaTarjeta, estado: "confirmada", origen: ahora ? "walkin" : "panel",
+      creado: serverTimestamp(), por: auth.currentUser?.email || ""
+    };
+    const lote = writeBatch(db);
+    lote.set(ref, datos);
+    if (!ahora) { lote.set(doc(db, "ocupados", slotDe(fecha, hora)), { fecha, hora, creado: serverTimestamp() }); yaApartadas.add(ref.id); }
+    await lote.commit();
+    cerrarAgenda();
+    if (ahora) {
+      // Walk-in: se sella de una vez y sale el botón para cobrar
+      await atenderCita({ id: ref.id, ...datos }, document.createElement("button"));
+    } else {
+      const wa = `https://wa.me/52${telefono}?text=` + encodeURIComponent(
+        `Hola ${nombre}, te confirmamos tu cita en Traffic Barber: ${sv.nombre}, el ${fechaTitulo(fecha).replace(/^(Hoy|Mañana) · /, "")} a las ${hora12(hora)}. ¡Te esperamos! (${folioDe(ref.id)})`);
+      $("agListo").innerHTML = `<span>✓ Cita de <b>${escapar(nombre)}</b> · ${fechaTitulo(fecha).split(" · ")[0]} ${hora12(hora)}</span>
+        <div><a class="btn btn-primary btn-sm" href="${wa}" target="_blank" rel="noopener">Mandarle confirmación</a></div>`;
+      $("agListo").classList.remove("hidden");
+      filtroCitas = fecha === fechaISO(new Date()) ? "hoy" : "proximas";
+      pintarCitas();
+    }
+  } catch (ex) { console.error(ex); falla("No se pudo guardar. Revisa que hayas pegado las reglas nuevas en Firestore."); }
+  btn.disabled = false;
 });
 
 
@@ -859,7 +1073,7 @@ function pintarCaja() {
   const ing = lista.filter(m => m.tipo === "ingreso"), gas = lista.filter(m => m.tipo === "gasto");
   const suma = (arr) => arr.reduce((s, m) => s + (Number(m.monto) || 0) + (Number(m.propina) || 0), 0);
   const entro = suma(ing), gastos = suma(gas);
-  const efectivo = suma(ing.filter(m => m.metodo === "efectivo")), transfer = suma(ing.filter(m => m.metodo === "transferencia"));
+  const efectivo = suma(ing.filter(m => !m.metodo || m.metodo === "efectivo")), transfer = suma(ing.filter(m => m.metodo === "transferencia")), terminal = suma(ing.filter(m => m.metodo === "terminal"));
   const propinas = ing.reduce((s, m) => s + (Number(m.propina) || 0), 0);
   $("cjEtiqueta").textContent = { hoy: "Entró hoy", semana: "Entró esta semana", mes: "Entró este mes" }[periodo];
   $("cjTotal").textContent = pesos(entro);
@@ -868,8 +1082,9 @@ function pintarCaja() {
     : "Sin cobros todavía";
   $("cjEfectivo").textContent = pesos(efectivo);
   $("cjTransfer").textContent = pesos(transfer);
+  $("cjTerminal").textContent = pesos(terminal);
   $("cjGastos").textContent = gastos ? "−" + pesos(gastos) : "$0";
-  const enCaja = efectivo - suma(gas.filter(m => m.metodo === "efectivo"));
+  const enCaja = efectivo - suma(gas.filter(m => !m.metodo || m.metodo === "efectivo"));
   $("cjEnCaja").innerHTML = periodo === "hoy" && lista.length ? `💵 Debe haber <b>${pesos(enCaja)}</b> en efectivo en la caja` : "";
 
   const el = $("listaMov");
@@ -883,7 +1098,7 @@ function pintarCaja() {
       html += `<div class="mov-dia"><span>${fechaTitulo(dia)}</span><b>${pesos(suma(delDia))}</b></div>`;
     }
     const gasto = m.tipo === "gasto";
-    const meta = [hora12(m.hora), m.metodo === "transferencia" ? "Transferencia" : "Efectivo", m.barbero, m.propina ? "propina " + pesos(m.propina) : ""].filter(Boolean).join(" · ");
+    const meta = [hora12(m.hora), metodoTxt(m.metodo), m.barbero, m.propina ? "propina " + pesos(m.propina) : ""].filter(Boolean).join(" · ");
     html += `<div class="mov${gasto ? " gasto" : ""}" data-id="${escapar(m.id)}">
       <span class="mov-ico" aria-hidden="true">${gasto ? "−" : "+"}</span>
       <div class="mov-txt"><b>${escapar(m.concepto)}</b><span>${escapar(meta)}</span></div>
@@ -985,7 +1200,7 @@ $("btnCajaCSV").addEventListener("click", () => {
   if (!lista.length) { alert("No hay movimientos en este periodo."); return; }
   const celda = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const filas = [["Fecha", "Hora", "Tipo", "Concepto", "Forma de pago", "Monto", "Propina", "Total", "Barbero"]];
-  lista.forEach(m => filas.push([m.fecha, m.hora, m.tipo === "gasto" ? "Gasto" : "Cobro", m.concepto, m.metodo === "transferencia" ? "Transferencia" : "Efectivo",
+  lista.forEach(m => filas.push([m.fecha, m.hora, m.tipo === "gasto" ? "Gasto" : "Cobro", m.concepto, metodoTxt(m.metodo),
     (m.tipo === "gasto" ? -1 : 1) * (Number(m.monto) || 0), Number(m.propina) || 0, (m.tipo === "gasto" ? -1 : 1) * ((Number(m.monto) || 0) + (Number(m.propina) || 0)), m.barbero || ""]));
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + filas.map(f => f.map(celda).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
@@ -1006,11 +1221,12 @@ function mostrarCobroRapido(c) {
   if (c) {
     el.innerHTML = `<span>Cobrar <b>${pesos(c.precio)}</b> · ${escapar(c.servicio)}</span>
       <div><button class="btn btn-primary btn-sm" type="button" data-metodo="efectivo">💵 Efectivo</button>
-      <button class="btn btn-ghost btn-sm" type="button" data-metodo="transferencia">📲 Transferencia</button></div>`;
+      <button class="btn btn-ghost btn-sm" type="button" data-metodo="transferencia">📲 Transferencia</button>
+      <button class="btn btn-ghost btn-sm" type="button" data-metodo="terminal">💳 Terminal</button></div>`;
     el.onclick = async (e) => {
       const b = e.target.closest("[data-metodo]"); if (!b) return;
       el.querySelectorAll("button").forEach(x => x.disabled = true);
-      try { await cobrarCita(c, b.dataset.metodo); el.innerHTML = `<span>✓ Cobrado ${pesos(c.precio)} en ${b.dataset.metodo}</span>`; }
+      try { await cobrarCita(c, b.dataset.metodo); el.innerHTML = `<span>✓ Cobrado ${pesos(c.precio)} · ${metodoTxt(b.dataset.metodo).toLowerCase()}</span>`; }
       catch (ex) { console.error(ex); el.querySelectorAll("button").forEach(x => x.disabled = false); alert("No se pudo cobrar. Intenta de nuevo."); }
     };
   } else {

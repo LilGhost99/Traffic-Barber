@@ -1,8 +1,8 @@
-// Agendar cita: elige servicio, día y hora → se crea la tarjeta (si no tiene) y la cita,
-// y luego se manda el mensaje por WhatsApp para registrarla en Confirmafy.
+// Agendar cita: elige servicio, día (calendario) y hora → se crea la tarjeta (si no tiene),
+// se aparta la hora en "ocupados" y se guarda la cita. Todo cae directo en el panel.
 import { db, configurado, MESES, escapar } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
-import { collection, addDoc, doc, getDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, addDoc, doc, getDoc, getDocs, serverTimestamp, writeBatch, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "tb_tarjeta_id";
@@ -67,7 +67,11 @@ function pintarBarberos() {
   document.querySelectorAll("[data-num]").forEach((el, i) => { el.textContent = i + 3; });
 }
 
-// ---------- Días y horas ----------
+// ---------- Días (calendario) y horas ----------
+const slotDe = (fecha, hora) => `${fecha}_${hora}`;
+const horaCorta = (hhmm) => { const h = Math.floor(aMin(hhmm) / 60); return `${((h + 11) % 12) + 1} ${h < 12 ? "am" : "pm"}`; };
+let ocupados = new Set();   // "2026-10-12_15:00"
+
 function horasDe(fecha) {
   const c = NEGOCIO.citas, lista = [];
   for (let m = aMin(c.primera); m <= aMin(c.ultima); m += c.cadaMinutos) lista.push(m);
@@ -78,31 +82,73 @@ function horasDe(fecha) {
   }
   return lista.map(aHHMM);
 }
+const libresDe = (fecha) => horasDe(fecha).filter((h) => !ocupados.has(slotDe(fecha, h)));
+
+const hoy0 = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+function limite() { const d = hoy0(); d.setDate(d.getDate() + NEGOCIO.citas.diasAdelante - 1); return d; }
+let mesVista = (() => { const d = hoy0(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
 
 function pintarDias() {
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const dias = [];
-  for (let i = 0; dias.length < NEGOCIO.citas.diasAdelante && i < 60; i++) {
-    const d = new Date(hoy); d.setDate(hoy.getDate() + i);
-    if (!NEGOCIO.horario.dias.includes(d.getDay())) continue;
-    if (i === 0 && !horasDe(fechaISO(d)).length) continue;
-    dias.push({ d, i });
+  const hoy = hoy0(), fin = limite();
+  const sel = valor("dia");
+  const y = mesVista.getFullYear(), mes = mesVista.getMonth();
+  const primero = new Date(y, mes, 1), diasMes = new Date(y, mes + 1, 0).getDate();
+  const hueco = (primero.getDay() + 6) % 7;   // semana empieza en lunes
+  let celdas = "";
+  for (let i = 0; i < hueco; i++) celdas += `<span class="cal-v" aria-hidden="true"></span>`;
+  for (let n = 1; n <= diasMes; n++) {
+    const d = new Date(y, mes, n), f = fechaISO(d);
+    const cerrado = !NEGOCIO.horario.dias.includes(d.getDay());
+    const fuera = d < hoy || d > fin;
+    const lleno = !cerrado && !fuera && !libresDe(f).length;
+    const off = cerrado || fuera || lleno;
+    const etiqueta = `${DIAS[d.getDay()]} ${n} de ${MESES[mes]}${cerrado ? ", cerrado" : lleno ? ", lleno" : fuera ? ", no disponible" : ""}`;
+    celdas += `<label class="cal-d${off ? " off" : ""}${lleno ? " lleno" : ""}${f === fechaISO(hoy) ? " hoy" : ""}">
+      <input type="radio" name="dia" value="${f}"${off ? " disabled" : ""}${f === sel && !off ? " checked" : ""} aria-label="${etiqueta}">
+      <span>${n}</span></label>`;
   }
-  $("opDias").innerHTML = dias.map(({ d, i }) => {
-    const titulo = i === 0 ? "Hoy" : i === 1 ? "Mañana" : DIAS_C[d.getDay()];
-    return `<label class="opcion"><input type="radio" name="dia" value="${fechaISO(d)}">
-      <span class="o-cuerpo"><b>${titulo}</b><span>${d.getDate()} ${MESES[d.getMonth()].slice(0, 3)}</span></span></label>`;
-  }).join("");
+  const mesMin = new Date(hoy.getFullYear(), hoy.getMonth(), 1), mesMax = new Date(fin.getFullYear(), fin.getMonth(), 1);
+  $("opDias").innerHTML = `
+    <div class="cal-head">
+      <button type="button" class="cal-nav" data-mes="-1" aria-label="Mes anterior"${mesVista <= mesMin ? " disabled" : ""}>‹</button>
+      <b>${MESES[mes]} ${y}</b>
+      <button type="button" class="cal-nav" data-mes="1" aria-label="Mes siguiente"${mesVista >= mesMax ? " disabled" : ""}>›</button>
+    </div>
+    <div class="cal-sem" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+    <div class="cal-grid">${celdas}</div>
+    <p class="cal-ley"><span class="pt hoy"></span>Hoy <span class="pt lleno"></span>Lleno <span class="pt cerr"></span>Cerrado (domingo)</p>`;
+  // Si el día elegido se llenó, se quita
+  if (sel && !libresDe(sel).length) { $("opHoras").innerHTML = `<p class="muted">Ese día ya se llenó. Elige otro.</p>`; resumen(); }
 }
+
+$("opDias").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-mes]");
+  if (!b || b.disabled) return;
+  mesVista = new Date(mesVista.getFullYear(), mesVista.getMonth() + Number(b.dataset.mes), 1);
+  pintarDias();
+});
 
 function pintarHoras() {
   const fecha = valor("dia");
-  if (!fecha) return;
+  if (!fecha) { $("opHoras").innerHTML = `<p class="muted">Primero elige el día en el calendario.</p>`; return; }
   const antes = valor("hora");
   const horas = horasDe(fecha);
   $("opHoras").innerHTML = horas.length
-    ? horas.map((h) => `<label class="opcion"><input type="radio" name="hora" value="${h}"${h === antes ? " checked" : ""}><span class="o-cuerpo">${hora12(h)}</span></label>`).join("")
+    ? horas.map((h) => {
+        const ocup = ocupados.has(slotDe(fecha, h));
+        return `<label class="opcion${ocup ? " ocupada" : ""}"><input type="radio" name="hora" value="${h}"${ocup ? " disabled" : ""}${h === antes && !ocup ? " checked" : ""}>` +
+          `<span class="o-cuerpo">${horaCorta(h)}${ocup ? "<small>Ocupada</small>" : ""}</span></label>`;
+      }).join("")
     : `<p class="muted">Ya no hay horarios para este día. Elige otro.</p>`;
+}
+
+// Horas ocupadas en vivo (solo día y hora, sin datos de nadie)
+function escucharOcupados() {
+  const q = query(collection(db, "ocupados"), where("fecha", ">=", fechaISO(hoy0())), where("fecha", "<=", fechaISO(limite())));
+  onSnapshot(q, (snap) => {
+    ocupados = new Set(snap.docs.map((d) => d.id));
+    pintarDias(); pintarHoras(); resumen();
+  }, (ex) => console.error(ex));
 }
 
 // ---------- ¿Ya tiene tarjeta en este celular? ----------
@@ -204,6 +250,7 @@ $("formCita").addEventListener("submit", async (e) => {
   if (!servicio) return error("Elige qué te vamos a hacer.");
   if (!fecha) return error("Elige el día de tu cita.");
   if (!hora) return error("Elige la hora de tu cita.");
+  if (ocupados.has(slotDe(fecha, hora))) return error("Esa hora ya está ocupada. Elige otra.");
 
   let nombre, telefono, cumple;
   if (cliente) { nombre = cliente.nombre; telefono = cliente.telefono; }
@@ -231,13 +278,28 @@ $("formCita").addEventListener("submit", async (e) => {
       nuevaTarjeta = true;
       if (!otraPersona) guardarId(ref.id);
     }
-    const ref = await addDoc(collection(db, "citas"), {
+    // Se aparta la hora y se guarda la cita juntas: si alguien ya la ganó, no se guarda nada.
+    const ref = doc(collection(db, "citas"));
+    const lote = writeBatch(db);
+    lote.set(doc(db, "ocupados", slotDe(fecha, hora)), { fecha, hora, creado: serverTimestamp() });
+    lote.set(ref, {
       nombre, telefono,
       servicioId: servicio.id, servicio: servicio.nombre, precio: cobro.precio, precioNormal: cobro.normal,
       fecha, hora, promo, barbero, comentario,
       clienteId: cliente.id, nuevaTarjeta,
       estado: "pendiente", creado: serverTimestamp()
     });
+    try { await lote.commit(); }
+    catch (ex) {
+      const tomada = await getDoc(doc(db, "ocupados", slotDe(fecha, hora))).then((d) => d.exists()).catch(() => false);
+      if (tomada) {
+        ocupados.add(slotDe(fecha, hora)); pintarDias(); pintarHoras(); resumen();
+        error(`Las ${horaCorta(hora)} se acaban de ocupar. Elige otra hora.`);
+        btn.disabled = false; btn.textContent = "Apartar cita";
+        return;
+      }
+      throw ex;
+    }
     mostrarListo({ folio: "TB-" + ref.id.slice(0, 5).toUpperCase(), servicio, fecha, hora, barbero, comentario, nombre, nuevaTarjeta, cobro });
   } catch (ex) {
     console.error(ex);
@@ -248,7 +310,7 @@ $("formCita").addEventListener("submit", async (e) => {
 
 function mostrarListo({ folio, servicio, fecha, hora, barbero, comentario, nombre, nuevaTarjeta, cobro }) {
   const lineas = [
-    "Hola, quiero agendar una cita en Traffic Barber 💈",
+    "Hola, acabo de apartar mi cita en Traffic Barber 💈",
     "",
     cobro.aplica
       ? `• Servicio: ${servicio.nombre} (con cita) – ${pesos(cobro.precio)} con promo (normal ${pesos(cobro.normal)})`
@@ -293,9 +355,9 @@ pintarBarberos();
 pintarDias();
 prepararCumple();
 document.addEventListener("change", (e) => {
-  if (e.target.name === "dia") pintarHoras();
+  if (e.target.name === "dia") { pintarHoras(); setTimeout(() => $("opHoras").scrollIntoView({ behavior: "smooth", block: "nearest" }), 60); }
   if (["servicio", "dia", "hora"].includes(e.target.name)) resumen();
 });
 resumen();
 if (!configurado) { $("sinConfig").classList.remove("hidden"); mostrarNuevos(); }
-else { cargarCliente(); cargarPromo(); }
+else { cargarCliente(); cargarPromo(); escucharOcupados(); }

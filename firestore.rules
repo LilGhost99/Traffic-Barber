@@ -18,7 +18,8 @@ service cloud.firestore {
       allow list: if esAdmin();
 
       // Registro: cualquiera puede crear SU tarjeta, pero siempre empieza en 0 sellos.
-      allow create: if request.resource.data.keys().hasOnly(
+      // El admin también puede crearla (ej. walk-in sin cumpleaños).
+      allow create: if esAdmin() || request.resource.data.keys().hasOnly(
                          ['nombre','telefono','cumple','sellos','facialCanjeado','tarjetas','creado'])
                     && request.resource.data.nombre is string
                     && request.resource.data.nombre.size() > 0
@@ -47,10 +48,25 @@ service cloud.firestore {
       }
     }
 
+    // Horas apartadas: solo dice qué día y hora están ocupados (sin datos del cliente).
+    // Cualquiera las ve para no agendar encima. Si la hora ya existe, nadie de la página puede volver a apartarla.
+    match /ocupados/{slot} {
+      allow read: if true;
+      allow create: if esAdmin()
+                    || (request.resource.data.keys().hasOnly(['fecha','hora','creado'])
+                        && request.resource.data.fecha is string
+                        && request.resource.data.fecha.matches('^20[0-9]{2}-[0-1][0-9]-[0-3][0-9]$')
+                        && request.resource.data.hora is string
+                        && request.resource.data.hora.matches('^[0-2][0-9]:00$')
+                        && slot == request.resource.data.fecha + '_' + request.resource.data.hora
+                        && request.resource.data.creado == request.time);
+      allow update, delete: if esAdmin();
+    }
+
     // Citas: cualquiera puede pedir una desde la página (siempre entra "pendiente");
-    // solo el admin las ve, confirma, marca o borra.
+    // el admin también las agenda (walk-ins), las ve, confirma, marca o borra.
     match /citas/{citaId} {
-      allow create: if request.resource.data.keys().hasOnly(
+      allow create: if esAdmin() || request.resource.data.keys().hasOnly(
                          ['nombre','telefono','servicioId','servicio','precio','fecha','hora','promo',
                           'barbero','comentario','clienteId','nuevaTarjeta','estado','creado','precioNormal'])
                     && request.resource.data.nombre is string
@@ -80,7 +96,8 @@ service cloud.firestore {
                     && request.resource.data.clienteId.size() <= 40
                     && request.resource.data.nuevaTarjeta is bool
                     && request.resource.data.estado == 'pendiente'
-                    && request.resource.data.creado == request.time;
+                    && request.resource.data.creado == request.time
+                    && existsAfter(/databases/$(database)/documents/ocupados/$(request.resource.data.fecha + '_' + request.resource.data.hora));
       allow read, update, delete: if esAdmin();
     }
 

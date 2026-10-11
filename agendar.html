@@ -78,15 +78,15 @@
       <div class="paso">
         <fieldset>
           <legend class="paso-t"><span class="n" data-num>2</span> ¿Qué día?</legend>
-          <div class="opciones chips dias" id="opDias"></div>
+          <div class="cal" id="opDias"></div>
         </fieldset>
       </div>
 
       <div class="paso">
         <fieldset>
           <legend class="paso-t"><span class="n" data-num>3</span> ¿A qué hora?</legend>
-          <div class="opciones horas" id="opHoras"><p class="muted">Primero elige el día.</p></div>
-          <p class="nota">Te confirmamos por WhatsApp. Si esa hora ya está ocupada, te proponemos otra.</p>
+          <div class="opciones horas" id="opHoras"><p class="muted">Primero elige el día en el calendario.</p></div>
+          <p class="nota">Las horas que ya están apartadas no se pueden elegir.</p>
         </fieldset>
       </div>
 
@@ -126,10 +126,10 @@
 
     <div id="vistaListo" class="listo hidden" tabindex="-1">
       <div class="palomita" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#050505" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
-      <h2 class="display">¡Ya casi! <span class="script">falta un paso</span></h2>
-      <p class="lead-c">Manda el mensaje por WhatsApp para <b>confirmar tu cita</b>. Te respondemos en cuanto la registremos.</p>
+      <h2 class="display">¡Listo! <span class="script">cita apartada</span></h2>
+      <p class="lead-c">Tu hora ya quedó apartada a tu nombre. Te confirmamos por WhatsApp. Si quieres, avísanos tú también.</p>
       <div class="ticket" id="ticket"></div>
-      <a class="btn btn-primary btn-block" id="btnWhats" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg> Enviar por WhatsApp</a>
+      <a class="btn btn-primary btn-block" id="btnWhats" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg> Avisar por WhatsApp</a>
       <a class="btn btn-ghost btn-block" href="tarjeta.html" id="btnTarjeta">Ver mi tarjeta de sellos</a>
       <p class="nota" id="notaTarjeta"></p>
     </div>
