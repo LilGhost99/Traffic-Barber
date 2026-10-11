@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mi tarjeta · Traffic Barber</title>
 <meta name="description" content="Tu tarjeta de cliente frecuente de Traffic Barber: junta sellos, ve promociones y recibe un regalo en tu cumpleaños.">
-<meta name="theme-color" content="#0D0E10">
+<meta name="theme-color" content="#050505">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icono-192.png">
@@ -15,22 +15,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Barlow+Condensed:ital,wght@0,800;1,900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,800;1,900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-  <g id="razor"><rect x="-92" y="-7" width="82" height="14" rx="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M-10,-10 L70,-13 Q86,-12 86,0 L86,4 Q86,9 78,9 L-10,9 Z" fill="currentColor"/><circle cx="-10" cy="0" r="4" fill="#121417"/></g>
+  <g id="razor"><rect x="-92" y="-7" width="82" height="14" rx="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M-10,-10 L70,-13 Q86,-12 86,0 L86,4 Q86,9 78,9 L-10,9 Z" fill="currentColor"/><circle cx="-10" cy="0" r="4" fill="#0C0C0C"/></g>
   <symbol id="razors" viewBox="0 0 200 120"><use href="#razor" transform="translate(100,66) rotate(-32)"/><use href="#razor" transform="translate(100,66) scale(-1,1) rotate(-32)"/></symbol>
 </defs></svg>
 
 <div class="pole" aria-hidden="true"></div>
 <div class="top">
   <a class="brand" href="index.html" aria-label="Traffic Barber, inicio">
-    <svg width="42" height="26" aria-hidden="true"><use href="#razors"/></svg>
-    <span class="name"><b>Traffic</b><small>BARBER</small></span>
+    <img class="brand-logo" src="logo.png" alt="Traffic Barber" width="900" height="377">
   </a>
   <a class="back" href="index.html">← Volver al sitio</a>
 </div>
@@ -82,7 +81,7 @@
           <div class="cliente" id="tNombre">—</div>
           <div class="sub" id="tSub">Cliente frecuente</div>
         </div>
-        <div class="mini" aria-hidden="true">Traffic</div>
+        <img class="mini-logo" src="logo.png" alt="" width="900" height="377">
       </div>
       <div class="sellos" id="tSellos"></div>
       <div class="estado" id="tEstado" aria-live="polite"></div>
@@ -258,7 +257,7 @@ function pintarTarjeta(c, id) {
 
     if (!qrHecho && window.QRCode) {
       const url = location.origin + location.pathname + "?id=" + encodeURIComponent(id);
-      new QRCode($("tQR"), { text: url, width: 208, height: 208, colorDark: "#0D0E10", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
+      new QRCode($("tQR"), { text: url, width: 208, height: 208, colorDark: "#050505", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
       qrHecho = true;
     }
 }
@@ -320,7 +319,7 @@ window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); prom
 const enModoApp = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 
 function pintarPolo(ctx, y, alto, ancho) {
-  const colores = ["#B3202F", "#F4F1EA", "#2D5BA8", "#F4F1EA"];
+  const colores = ["#B3202F", "#F5F5F5", "#2D5BA8", "#F5F5F5"];
   for (let x = -alto, i = 0; x < ancho + alto; x += 12, i++) {
     ctx.fillStyle = colores[i % 4];
     ctx.beginPath();
@@ -339,7 +338,6 @@ function texto(ctx, t, x, y, fuente, color, espaciado) {
 async function crearImagen() {
   try {
     await Promise.all([
-      document.fonts.load('150px "Pinyon Script"'),
       document.fonts.load('italic 900 72px "Barlow Condensed"'),
       document.fonts.load('800 44px "Barlow Condensed"'),
       document.fonts.load('500 34px "Barlow"')
@@ -349,25 +347,26 @@ async function crearImagen() {
   const c = document.createElement("canvas");
   c.width = W; c.height = H;
   const ctx = c.getContext("2d");
-  ctx.fillStyle = "#0D0E10"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#050505"; ctx.fillRect(0, 0, W, H);
   pintarPolo(ctx, 0, 18, W);
   pintarPolo(ctx, H - 18, 18, W);
 
-  ctx.strokeStyle = "#D4AF37"; ctx.lineWidth = 3;
+  ctx.strokeStyle = "#A5F20A"; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.roundRect(44, 62, W - 88, H - 124, 36); ctx.stroke();
 
-  texto(ctx, "Traffic", W / 2, 250, '150px "Pinyon Script"', "#D4AF37");
-  texto(ctx, "BARBER", W / 2 + 9, 318, '800 44px "Barlow Condensed"', "#D4AF37", "18px");
-  texto(ctx, (nombreActual || "").toUpperCase(), W / 2, 440, 'italic 900 76px "Barlow Condensed"', "#F4F1EA");
-  texto(ctx, "CLIENTE FRECUENTE", W / 2 + 4, 490, '600 28px "Barlow"', "#A8A49B", "6px");
+  const logo = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = "logo.png"; });
+  if (logo) { const w = 640, h = w * logo.height / logo.width; ctx.drawImage(logo, (W - w) / 2, 110, w, h); }
+  else texto(ctx, "TRAFFIC BARBER", W / 2, 260, 'italic 900 110px "Barlow Condensed"', "#A5F20A");
+  texto(ctx, (nombreActual || "").toUpperCase(), W / 2, 452, 'italic 900 76px "Barlow Condensed"', "#F5F5F5");
+  texto(ctx, "CLIENTE FRECUENTE", W / 2 + 4, 500, '600 28px "Barlow"', "#A3A3A3", "6px");
 
   ctx.fillStyle = "#FFFFFF";
   ctx.beginPath(); ctx.roundRect(250, 545, 580, 580, 28); ctx.fill();
   const fuenteQR = $("tQR").querySelector("canvas") || $("tQR").querySelector("img");
   if (fuenteQR) { ctx.imageSmoothingEnabled = false; ctx.drawImage(fuenteQR, 290, 585, 500, 500); }
 
-  texto(ctx, "Enséñale este código al barbero", W / 2, 1195, '500 36px "Barlow"', "#CBC6BB");
-  texto(ctx, "REAL DE TOLEDO · PACHUCA", W / 2 + 3, 1250, '800 26px "Barlow Condensed"', "#B9A06A", "6px");
+  texto(ctx, "Enséñale este código al barbero", W / 2, 1195, '500 36px "Barlow"', "#C9C9C9");
+  texto(ctx, "REAL DE TOLEDO · PACHUCA", W / 2 + 3, 1250, '800 26px "Barlow Condensed"', "#86B83A", "6px");
   return c;
 }
 

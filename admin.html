@@ -5,25 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Panel · Traffic Barber</title>
-<meta name="theme-color" content="#0D0E10">
+<meta name="theme-color" content="#050505">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Barlow+Condensed:ital,wght@0,800;1,900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,800;1,900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-  <g id="razor"><rect x="-92" y="-7" width="82" height="14" rx="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M-10,-10 L70,-13 Q86,-12 86,0 L86,4 Q86,9 78,9 L-10,9 Z" fill="currentColor"/><circle cx="-10" cy="0" r="4" fill="#121417"/></g>
+  <g id="razor"><rect x="-92" y="-7" width="82" height="14" rx="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M-10,-10 L70,-13 Q86,-12 86,0 L86,4 Q86,9 78,9 L-10,9 Z" fill="currentColor"/><circle cx="-10" cy="0" r="4" fill="#0C0C0C"/></g>
   <symbol id="razors" viewBox="0 0 200 120"><use href="#razor" transform="translate(100,66) rotate(-32)"/><use href="#razor" transform="translate(100,66) scale(-1,1) rotate(-32)"/></symbol>
 </defs></svg>
 
 <div class="pole" aria-hidden="true"></div>
 <div class="top">
   <span class="brand">
-    <svg width="42" height="26" aria-hidden="true"><use href="#razors"/></svg>
-    <span class="name"><b>Traffic</b><small>BARBER</small></span>
+    <img class="brand-logo" src="logo.png" alt="Traffic Barber" width="900" height="377">
   </span>
   <button class="btn btn-ghost btn-sm hidden" id="btnSalir" type="button">Cerrar sesión</button>
 </div>
@@ -200,6 +199,23 @@
       <form id="formPromo" style="margin-top:14px;gap:10px">
         <input id="pTitulo" maxlength="60" placeholder="Título, ej. Martes 2x1 con tu compa" aria-label="Título de la promoción">
         <input id="pDetalle" maxlength="140" placeholder="Detalle (opcional), ej. solo de 12 a 4pm" aria-label="Detalle de la promoción">
+        <fieldset class="desc-box">
+          <legend>Descuento al agendar en la página</legend>
+          <div class="fila">
+            <label><span class="hint">Tipo</span>
+              <select id="pTipo">
+                <option value="">Sin descuento automático</option>
+                <option value="precio">Precio especial ($)</option>
+                <option value="porcentaje">Descuento (%)</option>
+              </select>
+            </label>
+            <label><span class="hint" id="pValorHint">Cantidad</span><input id="pValor" type="number" inputmode="numeric" min="1" max="10000" placeholder="ej. 100" disabled></label>
+          </div>
+          <label><span class="hint">¿En qué servicio?</span><select id="pServicio"></select></label>
+          <div><span class="hint">¿Qué días? (sin marcar = todos)</span>
+            <div class="dias-promo" id="pDias"></div></div>
+          <p class="hint" style="margin:0">Ej. “Miércoles: cortes a $100” → Precio especial · 100 · Corte de cabello · Mié. Promos como 2x1 déjalas sin descuento automático: se aplican en la barbería.</p>
+        </fieldset>
         <button class="btn btn-primary btn-block" type="submit">+ Agregar promoción</button>
       </form>
       <div id="pAviso" class="aviso error hidden" role="alert"></div>
@@ -627,7 +643,7 @@ function htmlCita(c) {
         <div class="cita-nombre">${escapar(c.nombre)}<span>📱 ${escapar(c.telefono)} · ${folioDe(c.id)}</span></div></div>
       <span class="estado-c ${escapar(c.estado)}">${ESTADOS[c.estado] || escapar(c.estado)}</span>
     </div>
-    <div class="cita-serv"><b>${escapar(c.servicio)}</b><span class="precio">${pesos(c.precio)}</span></div>
+    <div class="cita-serv"><b>${escapar(c.servicio)}</b><span class="precio">${c.precioNormal > c.precio ? `<s class="tachado">${pesos(c.precioNormal)}</s> ` : ""}${pesos(c.precio)}</span></div>
     <div class="cita-inc">Incluye: ${escapar(NEGOCIO.beneficios.conCita.join(" · "))} · sello en su tarjeta</div>
     ${extras ? `<div class="cita-extra">${extras}</div>` : ""}
     ${c.nuevaTarjeta && abierta ? `<div class="cita-aviso">Se le creó tarjeta al agendar. Si ya tenía otra, se unen solas al darle <b>Llegó</b>.</div>` : ""}
@@ -997,12 +1013,33 @@ function escucharPromosGenerales() {
       .sort((a, b) => (b.data().creado?.seconds || 0) - (a.data().creado?.seconds || 0))
       .forEach(d => {
         const p = d.data();
-        el.appendChild(itemPromo(p, [
+        el.appendChild(itemPromo({ ...p, detalle: [p.detalle, textoDescuento(p)].filter(Boolean).join(" · ") }, [
           [p.activa === false ? "Activar" : "Pausar", "btn-ghost", () => updateDoc(d.ref, { activa: p.activa === false })],
           ["Borrar", "btn-peligro", async () => { if (confirm(`¿Borrar la promo "${p.titulo}"?`)) await deleteDoc(d.ref); }]
         ]));
       });
   }, (ex) => { console.error(ex); $("listaPromos").innerHTML = '<span class="muted">No se pudo cargar.</span>'; });
+}
+
+// Campos de descuento de la promo
+const DIAS_CORTOS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+$("pServicio").innerHTML = '<option value="">Todos los servicios</option>' +
+  NEGOCIO.servicios.map(sv => `<option value="${escapar(sv.id)}">${escapar(sv.nombre)} (${"$" + sv.conCita})</option>`).join("");
+$("pDias").innerHTML = [1,2,3,4,5,6,0].filter(d => NEGOCIO.horario.dias.includes(d)).map(d =>
+  `<label class="dia-chk"><input type="checkbox" value="${d}"><span>${DIAS_CORTOS[d]}</span></label>`).join("");
+$("pTipo").addEventListener("change", () => {
+  const t = $("pTipo").value;
+  $("pValor").disabled = !t;
+  $("pValorHint").textContent = t === "porcentaje" ? "Porcentaje (%)" : t === "precio" ? "Precio final ($)" : "Cantidad";
+  $("pValor").placeholder = t === "porcentaje" ? "ej. 20" : "ej. 100";
+  if (!t) $("pValor").value = "";
+});
+function textoDescuento(p) {
+  if (!p.tipo || !(Number(p.valor) > 0)) return "";
+  const sv = NEGOCIO.servicios.find(x => x.id === p.servicioId);
+  const cuanto = p.tipo === "porcentaje" ? `${p.valor}% de descuento` : `queda en $${p.valor}`;
+  const dias = p.dias && p.dias.length ? " · " + p.dias.map(d => DIAS_CORTOS[d]).join(", ") : "";
+  return `Al agendar: ${sv ? sv.nombre : "todos los servicios"} ${cuanto}${dias}`;
 }
 
 $("formPromo").addEventListener("submit", async (e) => {
@@ -1011,8 +1048,16 @@ $("formPromo").addEventListener("submit", async (e) => {
   $("pAviso").classList.add("hidden");
   if (!titulo) { $("pAviso").textContent = "Escribe el título de la promoción."; $("pAviso").classList.remove("hidden"); return; }
   try {
-    await addDoc(collection(db, "promos"), { titulo, detalle, activa: true, creado: serverTimestamp(), por: auth.currentUser?.email || "" });
+    const tipo = $("pTipo").value, valor = Number($("pValor").value);
+    if (tipo && !(valor > 0)) { $("pAviso").textContent = "Escribe la cantidad del descuento."; $("pAviso").classList.remove("hidden"); return; }
+    if (tipo === "porcentaje" && valor > 100) { $("pAviso").textContent = "El porcentaje no puede ser mayor a 100."; $("pAviso").classList.remove("hidden"); return; }
+    const dias = [...document.querySelectorAll("#pDias input:checked")].map(i => Number(i.value));
+    await addDoc(collection(db, "promos"), {
+      titulo, detalle, activa: true, creado: serverTimestamp(), por: auth.currentUser?.email || "",
+      tipo, valor: tipo ? valor : 0, servicioId: tipo ? $("pServicio").value : "", dias: tipo ? dias : []
+    });
     $("formPromo").reset();
+    $("pValor").disabled = true;
   } catch (ex) {
     console.error(ex);
     $("pAviso").textContent = "No se pudo guardar. Revisa que hayas actualizado las reglas de Firestore.";

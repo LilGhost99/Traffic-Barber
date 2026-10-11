@@ -24,7 +24,26 @@ function guardarId(id) { try { localStorage.setItem(CLAVE, id); } catch {} }
 
 let cliente = null;        // tarjeta con la que se agenda { id, nombre, telefono, sellos }
 let otraPersona = false;   // "No soy yo": no se guarda la tarjeta nueva en este celular
-let promo = "";            // promo validada
+let promo = "";            // título de la promo validada
+let promoInfo = null;      // { titulo, tipo, valor, servicioId, dias } si la promo trae descuento
+const DIAS_PROMO = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+
+// Precio con la promo aplicada. Devuelve { precio, normal, aplica, motivo }
+function precioCon(s, fecha) {
+  const normal = s.conCita;
+  const p = promoInfo;
+  if (!promo || !p || !p.tipo || !(Number(p.valor) > 0)) return { precio: normal, normal, aplica: false, motivo: "" };
+  if (p.servicioId && p.servicioId !== s.id) {
+    const sv = NEGOCIO.servicios.find((x) => x.id === p.servicioId);
+    return { precio: normal, normal, aplica: false, motivo: `La promo es solo para ${sv ? sv.nombre : "otro servicio"}.` };
+  }
+  if (p.dias && p.dias.length && fecha && !p.dias.includes(deISO(fecha).getDay())) {
+    return { precio: normal, normal, aplica: false, motivo: `La promo solo aplica ${p.dias.map((d) => DIAS_PROMO[d]).join(", ")}.` };
+  }
+  const v = Number(p.valor);
+  const precio = p.tipo === "porcentaje" ? Math.round(normal * (1 - Math.min(v, 100) / 100)) : Math.min(v, normal);
+  return { precio, normal, aplica: precio < normal, motivo: "" };
+}
 
 // ---------- Servicios ----------
 function pintarServicios() {
@@ -116,19 +135,26 @@ async function cargarCliente() {
 async function cargarPromo() {
   const t = params.get("promo");
   if (!t) return;
-  let validas = NEGOCIO.promociones.map((p) => p.titulo);
+  let validas = NEGOCIO.promociones.map((p) => ({ ...p }));
   if (configurado) {
     try {
       const snap = await getDocs(collection(db, "promos"));
-      if (!snap.empty) validas = snap.docs.map((d) => d.data()).filter((p) => p.activa !== false).map((p) => p.titulo);
+      if (!snap.empty) validas = snap.docs.map((d) => d.data()).filter((p) => p.activa !== false);
       const id = leerId();
       if (id) (await getDocs(collection(db, "clientes", id, "promos"))).forEach((d) => {
-        if (d.data().activa !== false) validas.push(d.data().titulo);
+        if (d.data().activa !== false) validas.push(d.data());
       });
     } catch (ex) { console.error(ex); }
   }
-  if (!validas.includes(t)) return;
+  const encontrada = validas.find((p) => p.titulo === t);
+  if (!encontrada) return;
   promo = t;
+  promoInfo = encontrada;
+  // Si la promo es de un servicio, dejarlo elegido
+  if (encontrada.servicioId && !valor("servicio")) {
+    const r = document.querySelector(`input[name="servicio"][value="${CSS.escape(encontrada.servicioId)}"]`);
+    if (r) r.checked = true;
+  }
   $("promoSel").innerHTML = `<span>Con la promo: <b>${escapar(t)}</b></span><button type="button" id="quitarPromo">Quitar</button>`;
   $("promoSel").classList.remove("hidden");
   $("quitarPromo").addEventListener("click", () => { promo = ""; $("promoSel").classList.add("hidden"); resumen(); });
@@ -141,7 +167,17 @@ function resumen() {
   const fecha = valor("dia"), hora = valor("hora");
   $("resumen").innerHTML = `<b>${s ? escapar(s.nombre) : "Elige tu servicio"}${promo ? " · promo" : ""}</b>` +
     `<span>${fecha ? fechaLarga(fecha) : "Día"}${hora ? " · " + hora12(hora) : fecha ? " · hora" : " y hora"}</span>`;
-  $("total").textContent = s ? pesos(s.conCita) : "";
+  if (!s) { $("total").textContent = ""; $("promoNota").classList.add("hidden"); return; }
+  const r = precioCon(s, fecha);
+  $("total").innerHTML = r.aplica ? `<s>${pesos(r.normal)}</s> ${pesos(r.precio)}` : pesos(r.precio);
+  const nota = $("promoNota");
+  if (promo && (r.motivo || (!r.aplica && !(promoInfo && promoInfo.tipo)))) {
+    nota.textContent = r.motivo || "El descuento de la promo se aplica en la barbería.";
+    nota.classList.remove("hidden");
+  } else if (r.aplica) {
+    nota.textContent = `Con la promo pagas ${pesos(r.precio)} en lugar de ${pesos(r.normal)}.`;
+    nota.classList.remove("hidden");
+  } else nota.classList.add("hidden");
 }
 
 // ---------- Datos del cumpleaños ----------
@@ -182,6 +218,7 @@ $("formCita").addEventListener("submit", async (e) => {
     cumple = String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");
   }
 
+  const cobro = precioCon(servicio, fecha);
   const btn = $("btnApartar");
   btn.disabled = true; btn.textContent = "Apartando…";
   try {
@@ -196,12 +233,12 @@ $("formCita").addEventListener("submit", async (e) => {
     }
     const ref = await addDoc(collection(db, "citas"), {
       nombre, telefono,
-      servicioId: servicio.id, servicio: servicio.nombre, precio: servicio.conCita,
+      servicioId: servicio.id, servicio: servicio.nombre, precio: cobro.precio, precioNormal: cobro.normal,
       fecha, hora, promo, barbero, comentario,
       clienteId: cliente.id, nuevaTarjeta,
       estado: "pendiente", creado: serverTimestamp()
     });
-    mostrarListo({ folio: "TB-" + ref.id.slice(0, 5).toUpperCase(), servicio, fecha, hora, barbero, comentario, nombre, nuevaTarjeta });
+    mostrarListo({ folio: "TB-" + ref.id.slice(0, 5).toUpperCase(), servicio, fecha, hora, barbero, comentario, nombre, nuevaTarjeta, cobro });
   } catch (ex) {
     console.error(ex);
     error("No pudimos apartar tu cita. Revisa tu conexión e intenta de nuevo.");
@@ -209,11 +246,13 @@ $("formCita").addEventListener("submit", async (e) => {
   }
 });
 
-function mostrarListo({ folio, servicio, fecha, hora, barbero, comentario, nombre, nuevaTarjeta }) {
+function mostrarListo({ folio, servicio, fecha, hora, barbero, comentario, nombre, nuevaTarjeta, cobro }) {
   const lineas = [
     "Hola, quiero agendar una cita en Traffic Barber 💈",
     "",
-    `• Servicio: ${servicio.nombre} (con cita) – ${pesos(servicio.conCita)}`,
+    cobro.aplica
+      ? `• Servicio: ${servicio.nombre} (con cita) – ${pesos(cobro.precio)} con promo (normal ${pesos(cobro.normal)})`
+      : `• Servicio: ${servicio.nombre} (con cita) – ${pesos(cobro.precio)}`,
     `• Día: ${fechaLarga(fecha)}`,
     `• Hora: ${hora12(hora)}`,
     barbero ? `• Con: ${barbero}` : null,
@@ -232,7 +271,7 @@ function mostrarListo({ folio, servicio, fecha, hora, barbero, comentario, nombr
     ["Hora", `<b>${hora12(hora)}</b>`],
     barbero ? ["Con", `<b>${escapar(barbero)}</b>`] : null,
     promo ? ["Promo", `<b>${escapar(promo)}</b>`] : null,
-    ["Total", `<b>${pesos(servicio.conCita)}</b>`],
+    ["Total", cobro.aplica ? `<b><s class="tachado">${pesos(cobro.normal)}</s> ${pesos(cobro.precio)}</b>` : `<b>${pesos(cobro.precio)}</b>`],
     ["Incluye", `<b>${escapar(NEGOCIO.beneficios.conCita.join(", "))}</b>`]
   ].filter(Boolean);
   $("ticket").innerHTML = filas.map(([a, b]) => `<div><span>${a}</span>${b}</div>`).join("");

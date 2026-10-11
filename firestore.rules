@@ -52,7 +52,7 @@ service cloud.firestore {
     match /citas/{citaId} {
       allow create: if request.resource.data.keys().hasOnly(
                          ['nombre','telefono','servicioId','servicio','precio','fecha','hora','promo',
-                          'barbero','comentario','clienteId','nuevaTarjeta','estado','creado'])
+                          'barbero','comentario','clienteId','nuevaTarjeta','estado','creado','precioNormal'])
                     && request.resource.data.nombre is string
                     && request.resource.data.nombre.size() > 0
                     && request.resource.data.nombre.size() <= 40
@@ -65,6 +65,7 @@ service cloud.firestore {
                     && request.resource.data.precio is number
                     && request.resource.data.precio >= 0
                     && request.resource.data.precio <= 10000
+                    && (!('precioNormal' in request.resource.data) || (request.resource.data.precioNormal is number && request.resource.data.precioNormal >= request.resource.data.precio && request.resource.data.precioNormal <= 10000))
                     && request.resource.data.fecha is string
                     && request.resource.data.fecha.matches('^20[0-9]{2}-[0-1][0-9]-[0-3][0-9]$')
                     && request.resource.data.hora is string

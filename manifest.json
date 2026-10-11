@@ -3,8 +3,8 @@
   "short_name": "Traffic Barber",
   "description": "Tu tarjeta de cliente frecuente de Traffic Barber.",
   "display": "standalone",
-  "background_color": "#0D0E10",
-  "theme_color": "#0D0E10",
+  "background_color": "#050505",
+  "theme_color": "#050505",
   "lang": "es-MX",
   "icons": [
     { "src": "icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
