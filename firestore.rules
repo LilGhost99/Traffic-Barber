@@ -47,6 +47,42 @@ service cloud.firestore {
       }
     }
 
+    // Citas: cualquiera puede pedir una desde la página (siempre entra "pendiente");
+    // solo el admin las ve, confirma, marca o borra.
+    match /citas/{citaId} {
+      allow create: if request.resource.data.keys().hasOnly(
+                         ['nombre','telefono','servicioId','servicio','precio','fecha','hora','promo',
+                          'barbero','comentario','clienteId','nuevaTarjeta','estado','creado'])
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() > 0
+                    && request.resource.data.nombre.size() <= 40
+                    && request.resource.data.telefono is string
+                    && request.resource.data.telefono.matches('^[0-9]{10}$')
+                    && request.resource.data.servicioId is string
+                    && request.resource.data.servicioId.size() <= 30
+                    && request.resource.data.servicio is string
+                    && request.resource.data.servicio.size() <= 40
+                    && request.resource.data.precio is number
+                    && request.resource.data.precio >= 0
+                    && request.resource.data.precio <= 10000
+                    && request.resource.data.fecha is string
+                    && request.resource.data.fecha.matches('^20[0-9]{2}-[0-1][0-9]-[0-3][0-9]$')
+                    && request.resource.data.hora is string
+                    && request.resource.data.hora.matches('^[0-2][0-9]:[0-5][0-9]$')
+                    && request.resource.data.promo is string
+                    && request.resource.data.promo.size() <= 80
+                    && request.resource.data.barbero is string
+                    && request.resource.data.barbero.size() <= 40
+                    && request.resource.data.comentario is string
+                    && request.resource.data.comentario.size() <= 120
+                    && request.resource.data.clienteId is string
+                    && request.resource.data.clienteId.size() <= 40
+                    && request.resource.data.nuevaTarjeta is bool
+                    && request.resource.data.estado == 'pendiente'
+                    && request.resource.data.creado == request.time;
+      allow read, update, delete: if esAdmin();
+    }
+
     // Promociones para todos: cualquiera las ve, solo el admin las cambia.
     match /promos/{promoId} {
       allow read: if true;

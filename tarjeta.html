@@ -122,7 +122,7 @@
     </div>
 
     <div style="display:grid;gap:10px;margin-top:20px">
-      <a class="btn btn-primary btn-block" id="tAgenda" target="_blank" rel="noopener">Agenda tu corte</a>
+      <a class="btn btn-primary btn-block" id="tAgenda" href="agendar.html">Agenda tu cita</a>
       <button class="btn btn-ghost btn-block" type="button" id="tSalir">Esta no es mi tarjeta</button>
     </div>
   </section>
@@ -228,6 +228,8 @@ function abrirTarjeta(id) {
   }, (ex) => console.error(ex));
   desuscribir = onSnapshot(doc(db, "clientes", id), (snap) => {
     if (!snap.exists()) { borrarId(); mostrar("vistaRegistro"); return; }
+    // Tenía dos tarjetas y el barbero las juntó: cambiar a la buena
+    if (snap.data().unidoA) { const buena = snap.data().unidoA; guardarId(buena); sellosPrevios = null; abrirTarjeta(buena); return; }
     pintarTarjeta(snap.data(), id);
   }, (ex) => {
     console.error(ex);
@@ -268,9 +270,10 @@ let desuscribirPromos = null;
 let ultimoCliente = null;
 
 function tarjetaPromo(p, personal) {
-  return `<div class="promo${personal ? " personal" : ""}">` +
+  return `<a class="promo promo-link${personal ? " personal" : ""}" href="agendar.html?promo=${encodeURIComponent(p.titulo)}">` +
     (personal ? `<em class="etiqueta">Solo para ti ✨</em>` : "") +
-    `<b>${escapar(p.titulo)}</b>${p.detalle ? `<span>${escapar(p.detalle)}</span>` : ""}</div>`;
+    `<b>${escapar(p.titulo)}</b>${p.detalle ? `<span>${escapar(p.detalle)}</span>` : ""}` +
+    `<small class="promo-ir">Agendar con esta promo →</small></a>`;
 }
 
 function pintarListaPromos() {
@@ -304,7 +307,6 @@ function escucharAjustes() {
 
 function pintarPromos() {
   pintarListaPromos();
-  $("tAgenda").href = `https://wa.me/${NEGOCIO.whatsapp}?text=${encodeURIComponent("Hola, quiero agendar un corte")}`;
   $("tSalir").addEventListener("click", () => {
     if (!confirm("¿Salir de esta tarjeta en este celular? La tarjeta no se borra.")) return;
     if (desuscribir) desuscribir();

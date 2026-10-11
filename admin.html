@@ -53,6 +53,7 @@
   <section id="vistaPanel" class="hidden">
     <nav class="tabs" role="tablist" aria-label="Secciones del panel">
       <button class="tab-btn" type="button" role="tab" data-tab="sellar" aria-selected="true">Sellar</button>
+      <button class="tab-btn" type="button" role="tab" data-tab="citas" aria-selected="false">Citas<span class="tab-badge hidden" id="badgeCitas" aria-label="citas nuevas"></span></button>
       <button class="tab-btn" type="button" role="tab" data-tab="clientes" aria-selected="false">Clientes</button>
       <button class="tab-btn" type="button" role="tab" data-tab="promos" aria-selected="false">Promos</button>
       <button class="tab-btn" type="button" role="tab" data-tab="numeros" aria-selected="false">Números</button>
@@ -146,6 +147,20 @@
 
     </div>
 
+    <!-- ===== Citas ===== -->
+    <div id="tab-citas" class="tab hidden" role="tabpanel">
+    <h1 class="display" style="font-size:44px">Tus <span class="script" style="display:inline;font-size:1em">citas</span></h1>
+    <p class="muted" style="font-size:14px;margin:8px 0 0;line-height:1.5">Las que piden desde la página. Cuando te llegue su WhatsApp, regístrala en Confirmafy y dale <b>Confirmar</b>. Cuando llegue el cliente, dale <b>Llegó</b> y se le pone su sello.</p>
+    <div class="filtros" role="group" aria-label="Qué citas ver">
+      <button class="filtro" type="button" data-filtro="hoy" aria-pressed="true">Hoy</button>
+      <button class="filtro" type="button" data-filtro="proximas" aria-pressed="false">Próximas</button>
+      <button class="filtro" type="button" data-filtro="cerrar" aria-pressed="false">Por cerrar</button>
+      <button class="filtro" type="button" data-filtro="todas" aria-pressed="false">Todas</button>
+    </div>
+    <div id="listaCitas" aria-live="polite"><p class="muted">Cargando…</p></div>
+    <div id="avisoCitas" class="aviso error hidden" role="alert"></div>
+    </div>
+
     <!-- ===== Clientes ===== -->
     <div id="tab-clientes" class="tab hidden" role="tabpanel">
     <h1 class="display" style="font-size:44px">Tus <span class="script" style="display:inline;font-size:1em">clientes</span></h1>
@@ -223,7 +238,17 @@
     <h1 class="display" style="font-size:44px">Tus <span class="script" style="display:inline;font-size:1em">números</span></h1>
     <p class="muted" style="font-size:14px;margin:8px 0 0" id="numMes"></p>
 
-    <div class="kpis" id="kpis"></div>
+    <div class="kpi-grupo">Citas</div>
+    <div class="kpis" id="kpisCitas" style="margin-top:10px"></div>
+
+    <div class="box">
+      <h2>Citas por mes</h2>
+      <p class="muted" style="margin:0 0 6px;font-size:14px">Citas pedidas desde la página en los últimos 6 meses (sin contar canceladas).</p>
+      <div id="graficaCitas" class="barras" role="list" aria-label="Citas por mes, últimos 6 meses"></div>
+    </div>
+
+    <div class="kpi-grupo">Visitas y clientes</div>
+    <div class="kpis" id="kpis" style="margin-top:10px"></div>
 
     <div class="box">
       <h2>Visitas por mes</h2>
@@ -311,6 +336,7 @@ function irA(tab) {
   window.scrollTo({ top: 0, behavior: "smooth" });
   if (tab === "clientes") cargarListas();
   if (tab === "numeros") cargarNumeros();
+  if (tab === "citas") pintarCitas();
 }
 document.querySelectorAll(".tab-btn").forEach(b => b.addEventListener("click", () => irA(b.dataset.tab)));
 
@@ -321,7 +347,8 @@ const segundos = (t) => (t && t.seconds) || 0;
 async function cargarListas() {
   try {
     const snap = await getDocs(collection(db, "clientes"));
-    clientes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Las tarjetas que se unieron a otra (unidoA) ya no cuentan como cliente aparte
+    clientes = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => !c.unidoA);
   } catch (ex) {
     console.error(ex);
     ["listaTodos","listaNuevos","listaCumple"].forEach(i => $(i).innerHTML = '<span class="muted">No se pudo cargar.</span>');
@@ -422,10 +449,57 @@ async function cargarNumeros() {
     statsError = true;
     statsMeses = meses.map(m => ({ etiqueta: MESES_CORTOS[m.getMonth()], visitas: 0, premios: 0 }));
   }
+  // Citas de los mismos 6 meses (se cuentan por el día de la cita)
+  try {
+    const snap = await getDocs(query(collection(db, "citas"), where("fecha", ">=", fechaISO(meses[0]))));
+    citasMeses = snap.docs.map(d => d.data());
+    citasError = false;
+  } catch (ex) { console.error(ex); citasMeses = []; citasError = true; }
+  mesesNumeros = meses;
   pintarNumeros();
   $("btnRefrescar").disabled = false;
 }
 $("btnRefrescar").addEventListener("click", () => { clientes = []; cargarNumeros(); });
+
+let citasMeses = [], citasError = false, mesesNumeros = [];
+
+function pintarBarras(el, datos, unidad) {
+  const max = Math.max(1, ...datos.map(m => m.valor));
+  el.innerHTML = datos.map((m, i) => {
+    const ultimo = i === datos.length - 1;
+    const alto = Math.round((m.valor / max) * 100);
+    return `<div class="barra-col${ultimo ? " actual" : ""}" role="listitem" tabindex="0" aria-label="${m.etiqueta}: ${m.valor} ${unidad}">` +
+      `<span class="barra-tip">${m.valor}</span>` +
+      `<div class="barra" style="height:${m.valor ? Math.max(alto, 3) : 0}%"></div>` +
+      `<span class="barra-mes">${m.etiqueta}</span></div>`;
+  }).join("");
+}
+
+function pintarNumerosCitas() {
+  const mes = claveMes();
+  const delMes = citasMeses.filter(c => (c.fecha || "").slice(0, 7) === mes);
+  const validas = delMes.filter(c => c.estado !== "cancelada");
+  const atendidas = delMes.filter(c => c.estado === "atendida");
+  const fallaron = delMes.filter(c => c.estado === "cancelada" || c.estado === "novino");
+  const ingreso = atendidas.reduce((s, c) => s + (Number(c.precio) || 0), 0);
+  const conteo = {};
+  validas.forEach(c => { conteo[c.servicio] = (conteo[c.servicio] || 0) + 1; });
+  const top = Object.entries(conteo).sort((a, b) => b[1] - a[1])[0];
+  const kpis = [
+    [validas.length, "Citas este mes"],
+    [atendidas.length, "Citas atendidas"],
+    [fallaron.length, "Canceladas o no vinieron"],
+    ["$" + ingreso.toLocaleString("es-MX"), "Ingreso de citas atendidas"],
+    [top ? escapar(top[0]) : "—", top ? `Lo más pedido (${top[1]})` : "Lo más pedido"]
+  ];
+  $("kpisCitas").innerHTML = citasError
+    ? `<div class="aviso error" style="grid-column:1/-1">No se pudieron leer las citas. Revisa que hayas pegado las reglas nuevas en Firestore.</div>`
+    : kpis.map(([n, t]) => `<div class="kpi"><b>${n}</b><span>${t}</span></div>`).join("");
+  pintarBarras($("graficaCitas"), mesesNumeros.map(m => ({
+    etiqueta: MESES_CORTOS[m.getMonth()],
+    valor: citasMeses.filter(c => (c.fecha || "").slice(0, 7) === claveMes(m) && c.estado !== "cancelada").length
+  })), "citas");
+}
 
 function pintarNumeros() {
   const hoy = new Date();
@@ -449,15 +523,8 @@ function pintarNumeros() {
   ];
   $("kpis").innerHTML = kpis.map(([n, t]) => `<div class="kpi"><b>${n}</b><span>${t}</span></div>`).join("");
 
-  const max = Math.max(1, ...statsMeses.map(m => m.visitas));
-  $("grafica").innerHTML = statsMeses.map((m, i) => {
-    const ultimo = i === statsMeses.length - 1;
-    const alto = Math.round((m.visitas / max) * 100);
-    return `<div class="barra-col${ultimo ? " actual" : ""}" role="listitem" tabindex="0" aria-label="${m.etiqueta}: ${m.visitas} visitas">` +
-      `<span class="barra-tip">${m.visitas}</span>` +
-      `<div class="barra" style="height:${m.visitas ? Math.max(alto, 3) : 0}%"></div>` +
-      `<span class="barra-mes">${m.etiqueta}</span></div>`;
-  }).join("");
+  pintarBarras($("grafica"), statsMeses.map(m => ({ etiqueta: m.etiqueta, valor: m.visitas })), "visitas");
+  pintarNumerosCitas();
 
   const aviso = $("avisoStats");
   if (statsError) {
@@ -465,6 +532,180 @@ function pintarNumeros() {
     aviso.classList.remove("hidden");
   } else aviso.classList.add("hidden");
 }
+
+// ---------- Citas ----------
+const DIAS_N = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const fechaISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const deISO = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const hora12 = (hhmm) => { const [h, m] = (hhmm || "0:0").split(":").map(Number); return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`; };
+const pesos = (n) => "$" + Number(n || 0).toLocaleString("es-MX");
+const folioDe = (id) => "TB-" + id.slice(0, 5).toUpperCase();
+const ESTADOS = {
+  pendiente: "Nueva · por confirmar",
+  confirmada: "Confirmada",
+  atendida: "Atendida ✓",
+  novino: "No vino",
+  cancelada: "Cancelada"
+};
+
+function fechaTitulo(fecha) {
+  const hoy = fechaISO(new Date());
+  const man = new Date(); man.setDate(man.getDate() + 1);
+  const d = deISO(fecha);
+  const largo = `${DIAS_N[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}`;
+  if (fecha === hoy) return "Hoy · " + largo;
+  if (fecha === fechaISO(man)) return "Mañana · " + largo;
+  return largo;
+}
+
+let citas = [];            // [{ id, ...datos }]
+let filtroCitas = "hoy";
+let citasCargadas = false;
+let idsVistos = null;      // para resaltar las que llegan mientras el panel está abierto
+const recienLlegadas = new Set();
+
+function escucharCitas() {
+  const desde = new Date(); desde.setDate(desde.getDate() - 30);
+  onSnapshot(query(collection(db, "citas"), where("fecha", ">=", fechaISO(desde))), (snap) => {
+    const nuevas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (idsVistos) nuevas.forEach(c => { if (!idsVistos.has(c.id)) recienLlegadas.add(c.id); });
+    idsVistos = new Set(nuevas.map(c => c.id));
+    citas = nuevas;
+    citasCargadas = true;
+    $("avisoCitas").classList.add("hidden");
+    pintarBadge();
+    if (tabActual === "citas") pintarCitas();
+  }, (ex) => {
+    console.error(ex);
+    $("listaCitas").innerHTML = "";
+    $("avisoCitas").textContent = "No se pudieron cargar las citas. Revisa que hayas pegado las reglas nuevas en Firestore.";
+    $("avisoCitas").classList.remove("hidden");
+  });
+}
+
+function pintarBadge() {
+  const hoy = fechaISO(new Date());
+  const n = citas.filter(c => c.estado === "pendiente" && c.fecha >= hoy).length;
+  $("badgeCitas").textContent = n;
+  $("badgeCitas").classList.toggle("hidden", !n);
+  document.title = (n ? `(${n}) ` : "") + "Panel · Traffic Barber";
+}
+
+function citasFiltradas(f) {
+  const hoy = fechaISO(new Date());
+  const orden = (a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora);
+  if (f === "hoy") return citas.filter(c => c.fecha === hoy).sort(orden);
+  if (f === "proximas") return citas.filter(c => c.fecha > hoy && c.estado !== "cancelada").sort(orden);
+  if (f === "cerrar") return citas.filter(c => c.fecha < hoy && (c.estado === "pendiente" || c.estado === "confirmada")).sort(orden);
+  return [...citas].sort((a, b) => orden(b, a));
+}
+
+function htmlCita(c) {
+  const nueva = recienLlegadas.has(c.id) && c.estado === "pendiente";
+  const extras = [
+    c.barbero ? `<span>Con ${escapar(c.barbero)}</span>` : "",
+    c.promo ? `<span class="oro">Promo: ${escapar(c.promo)}</span>` : "",
+    c.comentario ? `<span>📝 ${escapar(c.comentario)}</span>` : ""
+  ].join("");
+  const abierta = c.estado === "pendiente" || c.estado === "confirmada";
+  const wa = `https://wa.me/52${c.telefono}?text=` + encodeURIComponent(
+    `Hola ${c.nombre}, ${c.estado === "confirmada" ? "te recordamos" : "te confirmamos"} tu cita en Traffic Barber: ` +
+    `${c.servicio}, el ${fechaTitulo(c.fecha).replace(/^(Hoy|Mañana) · /, "")} a las ${hora12(c.hora)}. ¡Te esperamos! (${folioDe(c.id)})`);
+  let acciones = "";
+  if (c.estado === "pendiente") acciones +=
+    `<button class="btn btn-primary" type="button" data-acc="confirmar">✓ Confirmar</button>`;
+  if (abierta) acciones +=
+    `<button class="btn ${c.estado === "confirmada" ? "btn-primary" : "btn-ghost"}" type="button" data-acc="llego">Llegó · sellar</button>` +
+    `<a class="btn btn-ghost" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`;
+  if (c.estado === "confirmada") acciones += `<button class="btn btn-ghost" type="button" data-acc="novino">No vino</button>`;
+  if (abierta) acciones += `<button class="btn btn-peligro" type="button" data-acc="cancelar">Cancelar</button>`;
+  if (c.estado === "atendida") acciones += `<button class="btn btn-ghost" type="button" data-acc="tarjeta">Ver su tarjeta</button>`;
+  if (c.estado === "novino" || c.estado === "cancelada") acciones += `<button class="btn btn-ghost" type="button" data-acc="reabrir">Reabrir</button>`;
+  return `<article class="cita${nueva ? " nueva" : ""}" data-id="${escapar(c.id)}"${abierta ? "" : ' style="opacity:.72"'}>
+    <div class="cita-top">
+      <div><div class="cita-hora">${hora12(c.hora)}</div>
+        <div class="cita-nombre">${escapar(c.nombre)}<span>📱 ${escapar(c.telefono)} · ${folioDe(c.id)}</span></div></div>
+      <span class="estado-c ${escapar(c.estado)}">${ESTADOS[c.estado] || escapar(c.estado)}</span>
+    </div>
+    <div class="cita-serv"><b>${escapar(c.servicio)}</b><span class="precio">${pesos(c.precio)}</span></div>
+    <div class="cita-inc">Incluye: ${escapar(NEGOCIO.beneficios.conCita.join(" · "))} · sello en su tarjeta</div>
+    ${extras ? `<div class="cita-extra">${extras}</div>` : ""}
+    ${c.nuevaTarjeta && abierta ? `<div class="cita-aviso">Se le creó tarjeta al agendar. Si ya tenía otra, se unen solas al darle <b>Llegó</b>.</div>` : ""}
+    <div class="cita-acc">${acciones}</div>
+  </article>`;
+}
+
+function pintarCitas() {
+  if (!citasCargadas) return;
+  document.querySelectorAll(".filtro").forEach(b => {
+    const n = citasFiltradas(b.dataset.filtro).length;
+    b.setAttribute("aria-pressed", String(b.dataset.filtro === filtroCitas));
+    b.textContent = b.textContent.replace(/\s*\(\d+\)$/, "") + (n ? ` (${n})` : "");
+  });
+  const lista = citasFiltradas(filtroCitas);
+  const vacio = { hoy: "No hay citas para hoy.", proximas: "No hay citas próximas.", cerrar: "Todo al día: no hay citas pasadas sin cerrar.", todas: "Todavía no hay citas." }[filtroCitas];
+  if (!lista.length) { $("listaCitas").innerHTML = `<p class="muted" style="margin-top:18px">${vacio}</p>`; return; }
+  let html = "", dia = "";
+  lista.forEach(c => {
+    if (c.fecha !== dia && filtroCitas !== "hoy") { dia = c.fecha; html += `<div class="dia-t">${fechaTitulo(c.fecha)}</div>`; }
+    html += htmlCita(c);
+  });
+  $("listaCitas").innerHTML = (filtroCitas === "hoy" ? `<div class="dia-t">${fechaTitulo(fechaISO(new Date()))}</div>` : "") + html;
+}
+
+document.querySelectorAll(".filtro").forEach(b => b.addEventListener("click", () => { filtroCitas = b.dataset.filtro; pintarCitas(); }));
+
+async function cambiarEstado(c, estado) {
+  try { await updateDoc(doc(db, "citas", c.id), { estado, actualizado: serverTimestamp(), por: auth.currentUser?.email || "" }); }
+  catch (ex) { console.error(ex); alert("No se pudo guardar. Intenta de nuevo."); }
+}
+
+// Si el cliente tiene más de una tarjeta con el mismo WhatsApp, se juntan en la más antigua.
+async function unificarTarjetas(telefono, preferida) {
+  const snap = await getDocs(query(collection(db, "clientes"), where("telefono", "==", telefono)));
+  let cards = snap.docs.filter(d => !d.data().unidoA).map(d => ({ id: d.id, ref: d.ref, ...d.data() }));
+  if (!cards.length) return { id: preferida, unidas: 0 };
+  if (cards.length === 1) return { id: cards[0].id, unidas: 0 };
+  cards.sort((a, b) => segundos(a.creado) - segundos(b.creado));
+  const [queda, ...otras] = cards;
+  const lote = writeBatch(db);
+  lote.update(queda.ref, {
+    sellos: Math.min(MAX, cards.reduce((s, c) => s + (c.sellos || 0), 0)),
+    tarjetas: cards.reduce((s, c) => s + (c.tarjetas || 0), 0)
+  });
+  otras.forEach(o => lote.update(o.ref, { unidoA: queda.id, sellos: 0 }));
+  await lote.commit();
+  return { id: queda.id, unidas: otras.length };
+}
+
+async function atenderCita(c, boton) {
+  boton.disabled = true; boton.textContent = "Sellando…";
+  try {
+    const { id, unidas } = await unificarTarjetas(c.telefono, c.clienteId);
+    await abrirCliente(id);
+    const ok = await accion("sello", selloCambio, r => (unidas ? "Tenía tarjeta repetida, ya se juntaron en una. " : "") + selloMensaje(r));
+    if (!ok) { boton.disabled = false; boton.textContent = "Llegó · sellar"; return; }
+    await updateDoc(doc(db, "citas", c.id), { estado: "atendida", clienteId: id, actualizado: serverTimestamp(), por: auth.currentUser?.email || "" });
+  } catch (ex) {
+    console.error(ex);
+    alert("No se pudo sellar. Intenta de nuevo o búscalo por su WhatsApp en Sellar.");
+    boton.disabled = false; boton.textContent = "Llegó · sellar";
+  }
+}
+
+$("listaCitas").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-acc]");
+  if (!b) return;
+  const c = citas.find(x => x.id === b.closest(".cita").dataset.id);
+  if (!c) return;
+  const acc = b.dataset.acc;
+  if (acc === "confirmar") return cambiarEstado(c, "confirmada");
+  if (acc === "llego") return atenderCita(c, b);
+  if (acc === "novino") { if (confirm(`¿Marcar que ${c.nombre} no vino?`)) cambiarEstado(c, "novino"); return; }
+  if (acc === "cancelar") { if (confirm(`¿Cancelar la cita de ${c.nombre}?`)) cambiarEstado(c, "cancelada"); return; }
+  if (acc === "reabrir") return cambiarEstado(c, "confirmada");
+  if (acc === "tarjeta") return abrirCliente(c.clienteId);
+});
 
 // ---------- Buscar ----------
 $("buscarTel").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
@@ -476,9 +717,10 @@ $("formBuscar").addEventListener("submit", async (e) => {
   if (!/^\d{10}$/.test(tel)) { mostrarAviso("Escribe los 10 dígitos del WhatsApp."); return; }
   try {
     const r = await getDocs(query(collection(db, "clientes"), where("telefono", "==", tel)));
-    if (r.empty) { mostrarAviso("No hay ningún cliente con ese número. Pídele que se registre con el QR del mostrador."); return; }
-    if (r.size === 1) abrirCliente(r.docs[0].id);
-    else pintarLista($("resultados"), r.docs, "");
+    const docs = r.docs.filter(d => !d.data().unidoA);
+    if (!docs.length) { mostrarAviso("No hay ningún cliente con ese número. Pídele que se registre con el QR del mostrador."); return; }
+    if (docs.length === 1) abrirCliente(docs[0].id);
+    else pintarLista($("resultados"), docs, "");
   } catch (ex) { console.error(ex); mostrarAviso("No se pudo buscar. Revisa la conexión."); }
 });
 function mostrarAviso(t) { $("avisoBuscar").textContent = t; $("avisoBuscar").classList.remove("hidden"); }
@@ -591,7 +833,9 @@ async function abrirCliente(id) {
   $("resultados").innerHTML = "";
   $("avisoBuscar").classList.add("hidden");
   $("dMsg").classList.add("hidden");
-  const snap = await getDoc(doc(db, "clientes", id)).catch(() => null);
+  let snap = await getDoc(doc(db, "clientes", id)).catch(() => null);
+  // Tarjeta duplicada que ya se unió a otra: abrir la buena
+  if (snap && snap.exists() && snap.data().unidoA) { id = snap.data().unidoA; snap = await getDoc(doc(db, "clientes", id)).catch(() => null); }
   if (!snap || !snap.exists()) { mostrarAviso("Ese QR no corresponde a ninguna tarjeta."); return; }
   actual = id;
   if (desuscribir) desuscribir();
@@ -634,6 +878,7 @@ async function accion(tipo, cambio, mensaje) {
   if (!actual) return;
   const botones = ["aSellar","aFacial","aPremio","aQuitar"].map($);
   botones.forEach(b => b.disabled = true);
+  let ok = false;
   try {
     const ref = doc(db, "clientes", actual);
     let resultado = null;
@@ -652,6 +897,7 @@ async function accion(tipo, cambio, mensaje) {
     else if (tipo === "premio-" + FIN.en) sumarStat("premios10", 1);
     $("dMsg").textContent = typeof mensaje === "function" ? mensaje(resultado) : mensaje;
     $("dMsg").classList.remove("hidden");
+    ok = true;
     cargarListas();
   } catch (ex) {
     console.error(ex);
@@ -659,15 +905,16 @@ async function accion(tipo, cambio, mensaje) {
     $("dMsg").classList.remove("hidden");
   }
   if (actualDatos) pintarCliente(actualDatos);
+  return ok;
 }
 
-$("aSellar").addEventListener("click", () => accion("sello",
-  c => (c.sellos || 0) < MAX ? { sellos: (c.sellos || 0) + 1, ultimaVisita: serverTimestamp() } : null,
-  r => {
-    if (r.sellos >= FIN.en) return `Visita sellada ✓ ¡Tarjeta completa! Entrégale hoy: ${FIN.texto}.`;
-    if (r.sellos >= MITAD.en && !r.facialCanjeado) return `Visita sellada ✓ ¡Hoy le toca su ${MITAD.texto.toLowerCase()}!`;
-    return "Visita sellada ✓";
-  }));
+const selloCambio = c => (c.sellos || 0) < MAX ? { sellos: (c.sellos || 0) + 1, ultimaVisita: serverTimestamp() } : null;
+const selloMensaje = r => {
+  if (r.sellos >= FIN.en) return `Visita sellada ✓ ¡Tarjeta completa! Entrégale hoy: ${FIN.texto}.`;
+  if (r.sellos >= MITAD.en && !r.facialCanjeado) return `Visita sellada ✓ ¡Hoy le toca su ${MITAD.texto.toLowerCase()}!`;
+  return "Visita sellada ✓";
+};
+$("aSellar").addEventListener("click", () => accion("sello", selloCambio, selloMensaje));
 $("aQuitar").addEventListener("click", () => {
   if (!confirm("¿Quitar el último sello?")) return;
   accion("quitar",
@@ -900,6 +1147,7 @@ if (!configurado) {
       escucharPromosGenerales();
       escucharConfig();
       escucharResenas();
+      escucharCitas();
     }
   });
 }

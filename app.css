@@ -136,3 +136,44 @@ textarea:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:var
 /* Que la barra de pestañas no tape lo que se abre */
 #detalle,#cajaNuevo{scroll-margin-top:84px}
 .tarjeta .sub{letter-spacing:.04em}
+
+/* Promos de la tarjeta: llevan a Agendar */
+a.promo-link{display:block;text-decoration:none;color:var(--text);transition:border-color .2s ease,translate .2s ease}
+a.promo-link:hover{border-color:var(--gold);color:var(--text);translate:0 -2px}
+.promo-ir{display:block;margin-top:6px;font-size:13px;font-weight:700;color:var(--gold)}
+
+/* ---------- Panel: citas ---------- */
+.tabs{grid-template-columns:repeat(5,minmax(0,1fr))}
+.tab-btn{position:relative}
+.tab-badge{position:absolute;top:-6px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#E5675A;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;letter-spacing:0}
+.filtros{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.filtro{min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--soft);font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.filtro[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#0D0E10}
+.dia-t{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:20px;text-transform:uppercase;color:var(--soft);margin:22px 0 8px}
+.cita{background:var(--surface);border:1px solid var(--line);border-left-width:1px;border-radius:16px;padding:16px;margin-top:10px;display:grid;gap:10px}
+.cita.nueva{border-color:var(--gold);animation:pop .6s ease}
+.cita-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.cita-hora{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-style:italic;font-size:30px;line-height:1}
+.cita-nombre{font-weight:700;font-size:17px;margin-top:4px}
+.cita-nombre span{display:block;font-weight:500;font-size:13px;color:var(--muted);margin-top:2px}
+.estado-c{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700;border:1px solid}
+.estado-c.pendiente{color:#F1DC9C;border-color:rgba(212,175,55,.6);background:rgba(212,175,55,.1)}
+.estado-c.confirmada{color:#B4D3F2;border-color:rgba(110,160,220,.6);background:rgba(110,160,220,.1)}
+.estado-c.atendida{color:#B4E6C3;border-color:rgba(91,194,122,.6);background:rgba(91,194,122,.1)}
+.estado-c.novino,.estado-c.cancelada{color:#F2B1A8;border-color:rgba(229,103,90,.5);background:rgba(229,103,90,.08)}
+.cita-serv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:16px}
+.cita-serv b{font-size:17px}
+.cita-serv .precio{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:22px;color:var(--gold)}
+.cita-inc{font-size:13px;color:var(--muted);line-height:1.45}
+.cita-extra{display:flex;flex-wrap:wrap;gap:6px}
+.cita-extra span{font-size:13px;border-radius:999px;padding:3px 10px;background:#0F1013;border:1px solid var(--line);color:var(--soft)}
+.cita-extra span.oro{border-color:var(--gold);color:var(--gold)}
+.cita-acc{display:flex;flex-wrap:wrap;gap:8px}
+.cita-acc .btn{min-height:44px;padding:8px 14px;font-size:14px;flex:1 1 auto}
+.cita-aviso{font-size:13px;color:#F1DC9C;background:rgba(212,175,55,.08);border:1px dashed rgba(212,175,55,.5);border-radius:10px;padding:8px 10px;line-height:1.4}
+.cita-aviso button{background:none;border:none;color:var(--gold);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:0;min-height:0}
+.kpi-grupo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:20px;text-transform:uppercase;color:var(--soft);margin:24px 0 0}
+.cita-hoy{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:4px}
+@media (max-width:420px){
+  .tab-btn{font-size:13px !important;letter-spacing:0 !important}
+}
