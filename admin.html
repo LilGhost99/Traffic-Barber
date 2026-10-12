@@ -4,13 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Panel · Traffic Barber</title>
+<title data-t="Panel · {nombre}">Panel · Traffic Barber</title>
 <meta name="theme-color" content="#050505">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,800;1,900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="colores.css">
 <link rel="stylesheet" href="app.css">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script type="module" src="marca.js"></script>
 </head>
 <body>
 
@@ -441,6 +443,7 @@
 <script type="module">
 import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos, diaDe, horasCitaDe, agendaLimpia } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
+const SLUG = NEGOCIO.nombre.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, runTransaction, addDoc, serverTimestamp, writeBatch, setDoc, updateDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -578,7 +581,7 @@ function pintarCumples() {
     felicitar.setAttribute("aria-label", `Felicitar a ${c.nombre} por WhatsApp`);
     const link = new URL("tarjeta.html?id=" + encodeURIComponent(c.id), location.href).href;
     felicitar.href = `https://wa.me/52${c.telefono}?text=` + encodeURIComponent(
-      `¡Feliz cumpleaños, ${c.nombre}! 🎂 De parte de Traffic Barber, este mes tu regalo es: ${NEGOCIO.promoCumple}. Te esperamos. Tu tarjeta: ${link}`);
+      `¡Feliz cumpleaños, ${c.nombre}! 🎂 De parte de ${NEGOCIO.nombre}, este mes tu regalo es: ${NEGOCIO.promoCumple}. Te esperamos. Tu tarjeta: ${link}`);
     fila.appendChild(item); fila.appendChild(felicitar);
     el.appendChild(fila);
   });
@@ -597,7 +600,7 @@ $("btnCSV").addEventListener("click", () => {
   const csv = "﻿" + filas.map(f => f.map(celda).join(",")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  a.download = `clientes-traffic-barber-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `clientes-${SLUG}-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 });
@@ -775,7 +778,7 @@ function pintarBadge() {
   const n = citas.filter(c => c.estado === "pendiente" && c.fecha >= hoy).length;
   $("badgeCitas").textContent = n;
   $("badgeCitas").classList.toggle("hidden", !n);
-  document.title = (n ? `(${n}) ` : "") + "Panel · Traffic Barber";
+  document.title = (n ? `(${n}) ` : "") + "Panel · " + NEGOCIO.nombre;
 }
 
 function citasFiltradas(f) {
@@ -797,7 +800,7 @@ function htmlCita(c) {
   ].join("");
   const abierta = c.estado === "pendiente" || c.estado === "confirmada";
   const wa = `https://wa.me/52${c.telefono}?text=` + encodeURIComponent(
-    `Hola ${c.nombre}, ${c.estado === "confirmada" ? "te recordamos" : "te confirmamos"} tu cita en Traffic Barber: ` +
+    `Hola ${c.nombre}, ${c.estado === "confirmada" ? "te recordamos" : "te confirmamos"} tu cita en ${NEGOCIO.nombre}: ` +
     `${c.servicio}, el ${fechaTitulo(c.fecha).replace(/^(Hoy|Mañana) · /, "")} a las ${hora12(c.hora)}. ¡Te esperamos! (${folioDe(c.id)})`);
   let acciones = "";
   if (c.estado === "pendiente") acciones +=
@@ -1075,7 +1078,7 @@ $("formAgenda").addEventListener("submit", async (e) => {
       await atenderCita({ id: ref.id, ...datos }, document.createElement("button"));
     } else {
       const wa = `https://wa.me/52${telefono}?text=` + encodeURIComponent(
-        `Hola ${nombre}, te confirmamos tu cita en Traffic Barber: ${sv.nombre}, el ${fechaTitulo(fecha).replace(/^(Hoy|Mañana) · /, "")} a las ${hora12(hora)}. ¡Te esperamos! (${folioDe(ref.id)})`);
+        `Hola ${nombre}, te confirmamos tu cita en ${NEGOCIO.nombre}: ${sv.nombre}, el ${fechaTitulo(fecha).replace(/^(Hoy|Mañana) · /, "")} a las ${hora12(hora)}. ¡Te esperamos! (${folioDe(ref.id)})`);
       $("agListo").innerHTML = `<span>✓ Cita de <b>${escapar(nombre)}</b> · ${fechaTitulo(fecha).split(" · ")[0]} ${hora12(hora)}</span>
         <div><a class="btn btn-primary btn-sm" href="${wa}" target="_blank" rel="noopener">Mandarle confirmación</a></div>`;
       $("agListo").classList.remove("hidden");
@@ -1480,7 +1483,7 @@ $("btnCajaCSV").addEventListener("click", () => {
     (m.tipo === "gasto" ? -1 : 1) * (Number(m.monto) || 0), Number(m.propina) || 0, (m.tipo === "gasto" ? -1 : 1) * ((Number(m.monto) || 0) + (Number(m.propina) || 0)), m.barbero || ""]));
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + filas.map(f => f.map(celda).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
-  a.download = `caja-traffic-barber-${periodo}-${fechaISO(new Date())}.csv`;
+  a.download = `caja-${SLUG}-${periodo}-${fechaISO(new Date())}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 });
@@ -1668,7 +1671,7 @@ function pintarCliente(c) {
 
   const link = new URL("tarjeta.html?id=" + encodeURIComponent(actual), location.href).href;
   $("aWhats").href = `https://wa.me/52${c.telefono}?text=` +
-    encodeURIComponent(`Hola ${c.nombre}, esta es tu tarjeta de cliente frecuente de Traffic Barber: ${link}`);
+    encodeURIComponent(`Hola ${c.nombre}, esta es tu tarjeta de cliente frecuente de ${NEGOCIO.nombre}: ${link}`);
 
   $("aSellar").disabled = s >= MAX;
   $("aQuitar").disabled = s <= 0;

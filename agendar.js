@@ -314,7 +314,7 @@ $("formCita").addEventListener("submit", async (e) => {
 
 function mostrarListo({ folio, servicio, fecha, hora, barbero, comentario, nombre, nuevaTarjeta, cobro }) {
   const lineas = [
-    "Hola, acabo de apartar mi cita en Traffic Barber 💈",
+    `Hola, acabo de apartar mi cita en ${NEGOCIO.nombre} 💈`,
     "",
     cobro.aplica
       ? `• Servicio: ${servicio.nombre} (con cita) – ${pesos(cobro.precio)} con promo (normal ${pesos(cobro.normal)})`
