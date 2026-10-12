@@ -16,8 +16,37 @@ export const firebaseConfig = {
 
 // 2) Datos del negocio
 export const NEGOCIO = {
-  nombre: "Traffic Barber",
+  // ---- Identidad: se pinta solo en todas las páginas ----
+  nombre: "Traffic Barber",          // nombre de marca (títulos, mensajes de WhatsApp, tarjeta)
+  nombreGoogle: "TB Barber shop",    // tal cual aparece en Google Maps (pie de página y búsqueda en Maps)
+  lema: "No solo cortamos el cabello: diseñamos identidad. Old school y new school con lujo urbano, en Real de Toledo, Pachuca.",
+  descripcion: "studio de barbería",  // frase corta para Google: "Traffic Barber, studio de barbería en Real de Toledo…"
+
+  direccion: {
+    calle: "Av. San Marcos",
+    zona: "Real de Toledo",          // colonia o fraccionamiento
+    cp: "42119",
+    ciudad: "Pachuca",               // como lo dice la gente
+    ciudadOficial: "Pachuca de Soto",
+    estado: "Hgo."
+  },
+
+  // Google: Place ID (sácalo con el buscador de Place ID) y la calificación que muestra Google.
+  // Actualiza estrellas y reseñas cada mes o dos.
+  google: { placeId: "ChIJnW-ZsGyh0YURKsS65CJwEzI", estrellas: 4.9, resenas: 156 },
+
   whatsapp: "525573794461",          // con 52 al inicio, sin espacios
+  redes: {                           // link completo; las que dejes vacías no aparecen
+    facebook: "https://www.facebook.com/profile.php?id=61577432973040",
+    instagram: "",
+    tiktok: ""
+  },
+
+  // Colores de la marca (los demás tonos de la página son negros/grises y se quedan)
+  colores: { principal: "#A5F20A", claro: "#C6FF5C", suave: "#86B83A" },
+
+  // Aviso de privacidad: quién es el responsable de los datos
+  legal: { responsable: "[NOMBRE DEL TITULAR O RAZÓN SOCIAL]", correo: "[CORREO DE CONTACTO]" },
 
   // ---- Tarjeta de sellos (el panel puede cambiar estos textos en Promos → Premios) ----
   sellosPorTarjeta: 10,
