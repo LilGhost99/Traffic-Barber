@@ -1,6 +1,6 @@
 // Agendar cita: elige servicio, día (calendario) y hora → se crea la tarjeta (si no tiene),
 // se aparta la hora en "ocupados" y se guarda la cita. Todo cae directo en el panel.
-import { db, configurado, MESES, escapar, diaDe, horasCitaDe } from "./firebase.js";
+import { db, configurado, MESES, escapar, diaDe, horasCitaDe, chocaHora, horaBonita } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 import { collection, addDoc, doc, getDoc, getDocs, serverTimestamp, writeBatch, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -69,7 +69,10 @@ function pintarBarberos() {
 
 // ---------- Días (calendario) y horas ----------
 const slotDe = (fecha, hora) => `${fecha}_${hora}`;
-const horaCorta = (hhmm) => { const h = Math.floor(aMin(hhmm) / 60); return `${((h + 11) % 12) + 1} ${h < 12 ? "am" : "pm"}`; };
+const horaCorta = horaBonita;
+// Horas ya apartadas de ese día (ids "2026-10-12_11:30")
+const tomadasDe = (fecha) => [...ocupados].filter((id) => id.startsWith(fecha + "_")).map((id) => id.slice(11));
+const estaOcupada = (fecha, h) => chocaHora(h, tomadasDe(fecha));
 let ocupados = new Set();   // "2026-10-12_15:00"
 
 let agenda = null;          // horario que pone el barbero desde el panel (config/agenda)
@@ -82,7 +85,7 @@ function horasDe(fecha) {
   }
   return lista.map(aHHMM);
 }
-const libresDe = (fecha) => horasDe(fecha).filter((h) => !ocupados.has(slotDe(fecha, h)));
+const libresDe = (fecha) => horasDe(fecha).filter((h) => !estaOcupada(fecha, h));
 
 const hoy0 = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
 function limite() { const d = hoy0(); d.setDate(d.getDate() + NEGOCIO.citas.diasAdelante - 1); return d; }
@@ -135,7 +138,7 @@ function pintarHoras() {
   const horas = horasDe(fecha);
   $("opHoras").innerHTML = horas.length
     ? horas.map((h) => {
-        const ocup = ocupados.has(slotDe(fecha, h));
+        const ocup = estaOcupada(fecha, h);
         return `<label class="opcion${ocup ? " ocupada" : ""}"><input type="radio" name="hora" value="${h}"${ocup ? " disabled" : ""}${h === antes && !ocup ? " checked" : ""}>` +
           `<span class="o-cuerpo">${horaCorta(h)}${ocup ? "<small>Ocupada</small>" : ""}</span></label>`;
       }).join("")
@@ -254,7 +257,7 @@ $("formCita").addEventListener("submit", async (e) => {
   if (!servicio) return error("Elige qué te vamos a hacer.");
   if (!fecha) return error("Elige el día de tu cita.");
   if (!hora) return error("Elige la hora de tu cita.");
-  if (ocupados.has(slotDe(fecha, hora))) return error("Esa hora ya está ocupada. Elige otra.");
+  if (estaOcupada(fecha, hora)) return error("Esa hora ya está ocupada. Elige otra.");
 
   let nombre, telefono, cumple;
   if (cliente) { nombre = cliente.nombre; telefono = cliente.telefono; }

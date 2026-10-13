@@ -79,7 +79,7 @@ export const NEGOCIO = {
 
   // ---- Horario (0 = domingo, 1 = lunes … 6 = sábado) ----
   horario: { dias: [1, 2, 3, 4, 5, 6], abre: "11:30", cierra: "22:00" },
-  citas: { cadaMinutos: 60, primera: "12:00", ultima: "21:00", diasAdelante: 30 },   // horas cerradas: 12, 1, 2 … 9 pm
+  citas: { cadaMinutos: 60, primera: "11:30", ultima: "21:30", diasAdelante: 30 },   // las horas salen del horario: cada hora desde que abre
 
   // ---- Datos para transferencias (aparecen en la página con botón de copiar) ----
   pago: {

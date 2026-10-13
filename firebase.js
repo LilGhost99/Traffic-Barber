@@ -85,11 +85,24 @@ export function diaDe(agenda, NEGOCIO, fecha) {
   return { ...normal, especial: false };
 }
 
-// Horas cerradas para citas: de la primera hora completa después de abrir, a una hora antes de cerrar.
+// Horas para citas: cada hora desde que abre (ej. abre 11:30 → 11:30, 12:30, 1:30…),
+// la última al menos 30 min antes de cerrar.
 export function horasCitaDe(info) {
   if (!info || !info.abierto) return [];
   const out = [];
-  const desde = Math.ceil(aMinH(info.abre) / 60) * 60, hasta = aMinH(info.cierra) - 60;
+  const desde = aMinH(info.abre), hasta = aMinH(info.cierra) - 30;
   for (let m = desde; m <= hasta; m += 60) out.push(aHH(m));
   return out;
+}
+
+// ¿Esa hora choca con otra cita? (cada cita dura 1 hora)
+export function chocaHora(hora, ocupadas) {
+  const m = aMinH(hora);
+  return ocupadas.some((o) => Math.abs(aMinH(o) - m) < 60);
+}
+
+// "11:30" → "11:30 am", "13:00" → "1 pm"
+export function horaBonita(hhmm) {
+  const m = aMinH(hhmm), h = Math.floor(m / 60), mm = m % 60;
+  return `${((h + 11) % 12) + 1}${mm ? ":" + String(mm).padStart(2, "0") : ""} ${h < 12 ? "am" : "pm"}`;
 }

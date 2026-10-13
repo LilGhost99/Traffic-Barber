@@ -188,7 +188,7 @@
       <button type="button" data-ir="citas" aria-pressed="false">Lista</button>
       <button type="button" data-ir="horario" aria-pressed="true">Horario</button>
     </div>
-    <p class="muted" style="font-size:14px;margin:12px 0 0;line-height:1.5">Lo que pongas aquí se ve en la página y en el calendario para agendar. Las citas son a horas cerradas: de la primera hora después de abrir hasta una hora antes de cerrar.</p>
+    <p class="muted" style="font-size:14px;margin:12px 0 0;line-height:1.5">Lo que pongas aquí se ve en la página y en el calendario para agendar. Las citas van cada hora desde que abres (si abres 11:30 → 11:30, 12:30, 1:30…), la última al menos 30 min antes de cerrar.</p>
     <form id="formSemana" class="box" novalidate>
       <h2>Horario normal</h2>
       <div id="semanaFilas" class="sem-filas"></div>
@@ -457,7 +457,7 @@
 </main>
 
 <script type="module">
-import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos, diaDe, horasCitaDe, agendaLimpia } from "./firebase.js";
+import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos, diaDe, horasCitaDe, agendaLimpia, chocaHora, horaBonita } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 const SLUG = NEGOCIO.nombre.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -961,7 +961,7 @@ $("listaCitas").addEventListener("click", accionCita);
 
 // ---------- Agendar desde el panel (walk-ins y citas por teléfono) ----------
 let agCuando = "ahora", agServ = null, agHora = "", agClienteId = "", agBuscado = "";
-const horaCortaA = (hhmm) => { const h = Number(hhmm.split(":")[0]); return `${((h + 11) % 12) + 1} ${h < 12 ? "am" : "pm"}`; };
+const horaCortaA = horaBonita;
 const horasDelDia = (f) => horasCitaDe(diaDe(agendaAdm, NEGOCIO, f));
 function pintarAgHoras() {
   const f = $("agFecha").value;
@@ -973,7 +973,7 @@ function pintarAgHoras() {
   $("agHoras").innerHTML = horasDelDia(f).map(h => {
     const [hh, mm] = h.split(":").map(Number);
     const pasada = esHoy && hh * 60 + mm < minAhora - 30;
-    const ocupada = ocup.has(h);
+    const ocupada = chocaHora(h, [...ocup]);
     if (agHora === h && (ocupada || pasada)) agHora = "";
     return `<button type="button" data-hora="${h}" aria-pressed="${agHora === h}"${ocupada || pasada ? " disabled" : ""}>${horaCortaA(h)}${ocupada ? "<small>Ocupada</small>" : ""}</button>`;
   }).join("");
@@ -1064,7 +1064,7 @@ $("formAgenda").addEventListener("submit", async (e) => {
   if (!sv) return falla("Elige el servicio.");
   if (!ahora && !fecha) return falla("Elige el día.");
   if (!ahora && !hora) return falla("Elige la hora.");
-  if (!ahora && citas.some(c => c.fecha === fecha && c.hora === hora && ACTIVAS.includes(c.estado))) return falla("Esa hora ya está ocupada. Elige otra.");
+  if (!ahora && chocaHora(hora, citas.filter(c => c.fecha === fecha && ACTIVAS.includes(c.estado)).map(c => c.hora))) return falla("Esa hora ya está ocupada. Elige otra.");
   const btn = $("agGuardar"); btn.disabled = true;
   try {
     let clienteId = agClienteId, nuevaTarjeta = false;
@@ -1206,18 +1206,22 @@ function pintarDiaAdmin() {
   }
 
   // Horas del día: lo que está ocupado, libre o bloqueado
-  const horas = new Set(info.abierto ? horasCitaDe(info) : []);
-  activas.forEach(c => horas.add(c.hora.slice(0, 2) + ":00"));
+  // Cada cita cae en el espacio de 1 hora donde empieza (ej. 12:00 cae en el de 11:30)
+  const base = info.abierto ? horasCitaDe(info) : [];
+  const aM = (t) => { const [a, b] = t.split(":").map(Number); return a * 60 + b; };
+  const espacioDe = (hora) => base.find(h => aM(h) <= aM(hora) && aM(hora) < aM(h) + 60) || hora;
+  const horas = new Set(base);
+  activas.forEach(c => horas.add(espacioDe(c.hora)));
   const ahora = new Date(), minAhora = ahora.getHours() * 60 + ahora.getMinutes();
   if (horas.size) {
     html += `<div class="slots">` + [...horas].sort().map(h => {
-      const enHora = activas.filter(c => c.hora.slice(0, 2) === h.slice(0, 2));
+      const enHora = activas.filter(c => espacioDe(c.hora) === h);
       const bloq = ocupadosAdm.find(o => o.fecha === f && o.hora === h && !enHora.length);
-      const ya = pasado || (f === hoy && Number(h.slice(0, 2)) * 60 < minAhora - 30);
+      const ya = pasado || (f === hoy && aM(h) < minAhora - 30);
       let cuerpo, acc = "", clase;
       if (enHora.length) {
         clase = "ocup";
-        cuerpo = enHora.map(c => `<span class="s-cita"><b>${escapar(c.nombre.split(" ")[0])}</b> · ${escapar(c.servicio)}${c.hora.slice(3) !== "00" ? ` · ${hora12(c.hora)}` : ""} <i class="estado-c ${escapar(c.estado)}">${ESTADOS[c.estado] || ""}</i></span>`).join("");
+        cuerpo = enHora.map(c => `<span class="s-cita"><b>${escapar(c.nombre.split(" ")[0])}</b> · ${escapar(c.servicio)}${c.hora !== h ? ` · ${hora12(c.hora)}` : ""} <i class="estado-c ${escapar(c.estado)}">${ESTADOS[c.estado] || ""}</i></span>`).join("");
       } else if (bloq) {
         clase = "bloq"; cuerpo = `<span>🔒 Bloqueada</span>`;
         if (!pasado) acc = `<button type="button" class="btn btn-ghost btn-sm" data-desbloquear="${escapar(bloq.id)}">Quitar</button>`;
