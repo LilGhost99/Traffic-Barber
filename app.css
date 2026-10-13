@@ -336,3 +336,4 @@ h1 .script{font-size:1em;line-height:.92}
 .esp-fila b{display:block}
 .esp-fila span{font-size:14px;color:var(--muted)}
 p .link-btn{margin:0;min-height:0;font-size:inherit}
+.edit-cli{margin-top:14px;padding:16px;border-radius:16px;border:1px solid var(--line);background:#0C0C0C;display:grid;gap:12px}

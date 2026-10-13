@@ -133,8 +133,24 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
           Mandar su tarjeta por WhatsApp
         </a>
+        <button class="btn btn-ghost btn-block" type="button" id="aEditar">✏️ Editar datos</button>
         <button class="btn btn-block" type="button" id="aBorrar" style="background:transparent;border:2px solid rgba(229,103,90,.6);color:#F2B1A8">Borrar cliente</button>
       </div>
+      <form id="formEditar" class="caja-form edit-cli hidden" novalidate>
+        <h2>Editar cliente</h2>
+        <label>Nombre<input id="eNombre" maxlength="40" autocomplete="off"></label>
+        <label>WhatsApp<span class="hint"> · 10 dígitos</span><input id="eTel" type="tel" inputmode="numeric" maxlength="10"></label>
+        <div class="fila">
+          <label><span class="hint">Cumple · día</span><select id="eDia"></select></label>
+          <label><span class="hint">mes</span><select id="eMes"></select></label>
+        </div>
+        <label>Sellos <span class="hint">· por si traía sellos de antes o hubo un error</span><input id="eSellos" type="number" inputmode="numeric" min="0"></label>
+        <div class="caja-guardar">
+          <button class="btn btn-ghost" type="button" id="eCancelar">Cancelar</button>
+          <button class="btn btn-primary" type="submit" id="eGuardar">Guardar</button>
+        </div>
+        <div class="aviso error hidden" id="eAviso" role="alert"></div>
+      </form>
       <div id="dMsg" class="aviso ok hidden" role="status"></div>
       <div id="cobroRapido" class="cobro-rapido hidden"></div>
 
@@ -498,7 +514,7 @@ $("btnSalir").addEventListener("click", () => signOut(auth));
 function itemCliente(id, c) {
   const b = document.createElement("button");
   b.type = "button"; b.className = "item";
-  b.innerHTML = `<div><b>${escapar(c.nombre)}</b><span>${escapar(c.telefono)} · 🎂 ${escapar(cumpleBonito(c.cumple))}</span></div><div class="n">${c.sellos || 0}/${MAX}</div>`;
+  b.innerHTML = `<div><b>${escapar(c.nombre)}</b><span>${escapar(c.telefono)}${c.cumple ? " · 🎂 " + escapar(cumpleBonito(c.cumple)) : ""}</span></div><div class="n">${c.sellos || 0}/${MAX}</div>`;
   b.addEventListener("click", () => abrirCliente(id));
   return b;
 }
@@ -1636,12 +1652,60 @@ $("formNuevo").addEventListener("submit", async (e) => {
 // ---------- Detalle y acciones ----------
 let actual = null, actualDatos = null, desuscribir = null;
 
+// ---------- Editar datos del cliente ----------
+function abrirEditar() {
+  const c = actualDatos || {};
+  const [m, d] = String(c.cumple || "").split("-").map(Number);
+  $("eNombre").value = c.nombre || "";
+  $("eTel").value = c.telefono || "";
+  $("eDia").innerHTML = '<option value="">—</option>' + Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}"${d === i + 1 ? " selected" : ""}>${i + 1}</option>`).join("");
+  $("eMes").innerHTML = '<option value="">—</option>' + MESES.map((x, i) => `<option value="${i + 1}"${m === i + 1 ? " selected" : ""}>${x[0].toUpperCase() + x.slice(1)}</option>`).join("");
+  $("eSellos").max = MAX; $("eSellos").value = c.sellos || 0;
+  $("eAviso").classList.add("hidden"); $("dMsg").classList.add("hidden");
+  $("formEditar").classList.remove("hidden");
+  $("formEditar").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("eNombre").focus({ preventScroll: true });
+}
+const cerrarEditar = () => $("formEditar").classList.add("hidden");
+$("aEditar").addEventListener("click", abrirEditar);
+$("eCancelar").addEventListener("click", cerrarEditar);
+$("eTel").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
+$("formEditar").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const aviso = $("eAviso"); aviso.classList.add("hidden");
+  const falla = (t) => { aviso.textContent = t; aviso.classList.remove("hidden"); };
+  const nombre = $("eNombre").value.trim(), telefono = $("eTel").value.trim();
+  const d = Number($("eDia").value), m = Number($("eMes").value), sellos = Number($("eSellos").value);
+  if (!nombre) return falla("Escribe su nombre.");
+  if (!/^\d{10}$/.test(telefono)) return falla("El WhatsApp debe tener 10 dígitos.");
+  if (!!d !== !!m) return falla("Elige día y mes del cumpleaños (o deja los dos vacíos).");
+  if (!Number.isInteger(sellos) || sellos < 0 || sellos > MAX) return falla(`Los sellos van de 0 a ${MAX}.`);
+  const id = actual;
+  $("eGuardar").disabled = true;
+  try {
+    if (telefono !== actualDatos.telefono) {
+      const otros = (await getDocs(query(collection(db, "clientes"), where("telefono", "==", telefono)))).docs
+        .filter(x => x.id !== id && !x.data().unidoA);
+      if (otros.length) { $("eGuardar").disabled = false; return falla(`Ese número ya es de otro cliente: ${otros[0].data().nombre}.`); }
+    }
+    const cambios = { nombre, telefono, cumple: d && m ? String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0") : "", sellos };
+    if (sellos < MITAD.en) cambios.facialCanjeado = false;   // si se bajan los sellos, el premio del 5° vuelve a tocar
+    await updateDoc(doc(db, "clientes", id), cambios);
+    cerrarEditar();
+    $("dMsg").textContent = "Datos guardados ✓";
+    $("dMsg").classList.remove("hidden");
+    if (tabActual === "clientes") cargarListas();
+  } catch (ex) { console.error(ex); falla("No se pudo guardar. Intenta de nuevo."); }
+  $("eGuardar").disabled = false;
+});
+
 async function abrirCliente(id) {
   if (tabActual !== "sellar") irA("sellar");
   $("resultados").innerHTML = "";
   $("avisoBuscar").classList.add("hidden");
   $("dMsg").classList.add("hidden");
   $("cobroRapido").classList.add("hidden");
+  $("formEditar").classList.add("hidden");
   let snap = await getDoc(doc(db, "clientes", id)).catch(() => null);
   // Tarjeta duplicada que ya se unió a otra: abrir la buena
   if (snap && snap.exists() && snap.data().unidoA) { id = snap.data().unidoA; snap = await getDoc(doc(db, "clientes", id)).catch(() => null); }
@@ -1658,7 +1722,7 @@ function pintarCliente(c) {
   actualDatos = c;
   const s = c.sellos || 0;
   $("dNombre").textContent = c.nombre;
-  $("dDatos").innerHTML = `<span>📱 ${escapar(c.telefono)}</span><span>🎂 ${escapar(cumpleBonito(c.cumple))}</span>${c.tarjetas ? `<span>Tarjetas completas: ${c.tarjetas}</span>` : ""}`;
+  $("dDatos").innerHTML = `<span>📱 ${escapar(c.telefono)}</span>${c.cumple ? `<span>🎂 ${escapar(cumpleBonito(c.cumple))}</span>` : ""}${c.tarjetas ? `<span>Tarjetas completas: ${c.tarjetas}</span>` : ""}`;
   pintarSellos($("dSellos"), s, NEGOCIO);
   const cum = $("dCumple");
   if (esMesDeCumple(c.cumple)) { cum.innerHTML = `🎂 Cumple este mes. Regalo: <b>${escapar(NEGOCIO.promoCumple)}</b>`; cum.classList.remove("hidden"); }
