@@ -83,9 +83,9 @@ export const NEGOCIO = {
 
   // ---- Datos para transferencias (aparecen en la página con botón de copiar) ----
   pago: {
-    banco: "Mercado Pago",
+    banco: "Banco Azteca (tarjeta) · Mercado Pago (CLABE)",
     titular: "Alexis Uriel Morales Garcia",
-    tarjeta: "",                        // ej. "4152 3138 0000 0000". Vacío = no aparece
+    tarjeta: "4027 6658 4689 9194",     // vacío = no aparece
     clabe: "722969014337227343"        // opcional: 18 dígitos. Si lo dejas vacío no aparece
   },
 
