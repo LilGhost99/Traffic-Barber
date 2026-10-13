@@ -260,7 +260,9 @@
       <button type="button" data-periodo="hoy" aria-pressed="true">Hoy</button>
       <button type="button" data-periodo="semana" aria-pressed="false">Semana</button>
       <button type="button" data-periodo="mes" aria-pressed="false">Mes</button>
+      <button type="button" data-periodo="dia" aria-pressed="false">Por día</button>
     </div>
+    <label id="cjDiaWrap" class="hidden">Elige el día<input id="cjDia" type="date"></label>
 
     <section class="caja-total" aria-live="polite">
       <span class="ct-etq" id="cjEtiqueta">Hoy</span>
@@ -1347,7 +1349,8 @@ function inicioMes() { const d = new Date(); return fechaISO(new Date(d.getFullY
 const barberosReales = () => (NEGOCIO.barberos || []).filter(b => b.nombre && !/^\s*\[/.test(b.nombre));
 
 function escucharCaja() {
-  const desde = [inicioSemana(), inicioMes()].sort()[0];
+  const d = new Date(); d.setDate(d.getDate() - 90);   // shortcut: "Por día" solo ve 90 días atrás; subir si piden más
+  const desde = fechaISO(d);
   onSnapshot(query(collection(db, "caja"), where("fecha", ">=", desde)), (snap) => {
     movs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     $("avisoCaja").classList.add("hidden");
@@ -1362,6 +1365,7 @@ function escucharCaja() {
 
 function movsDelPeriodo() {
   const hoy = fechaISO(new Date());
+  if (periodo === "dia") return movs.filter(m => m.fecha === $("cjDia").value);
   const desde = periodo === "hoy" ? hoy : periodo === "semana" ? inicioSemana() : inicioMes();
   return movs.filter(m => m.fecha >= desde && m.fecha <= hoy);
 }
@@ -1374,7 +1378,9 @@ function pintarCaja() {
   const entro = suma(ing), gastos = suma(gas);
   const efectivo = suma(ing.filter(m => !m.metodo || m.metodo === "efectivo")), transfer = suma(ing.filter(m => m.metodo === "transferencia")), terminal = suma(ing.filter(m => m.metodo === "terminal"));
   const propinas = ing.reduce((s, m) => s + (Number(m.propina) || 0), 0);
-  $("cjEtiqueta").textContent = { hoy: "Entró hoy", semana: "Entró esta semana", mes: "Entró este mes" }[periodo];
+  $("cjDiaWrap").classList.toggle("hidden", periodo !== "dia");
+  $("cjEtiqueta").textContent = periodo === "dia" ? "Entró el " + fechaTitulo($("cjDia").value).replace(/^(Hoy|Mañana) · /, "")
+    : { hoy: "Entró hoy", semana: "Entró esta semana", mes: "Entró este mes" }[periodo];
   $("cjTotal").textContent = pesos(entro);
   $("cjSub").textContent = ing.length
     ? `${ing.length} cobro${ing.length === 1 ? "" : "s"}${propinas ? " · propinas " + pesos(propinas) : ""}${gastos ? " · quedan " + pesos(entro - gastos) + " después de gastos" : ""}`
@@ -1384,14 +1390,14 @@ function pintarCaja() {
   $("cjTerminal").textContent = pesos(terminal);
   $("cjGastos").textContent = gastos ? "−" + pesos(gastos) : "$0";
   const enCaja = efectivo - suma(gas.filter(m => !m.metodo || m.metodo === "efectivo"));
-  $("cjEnCaja").innerHTML = periodo === "hoy" && lista.length ? `💵 Debe haber <b>${pesos(enCaja)}</b> en efectivo en la caja` : "";
+  $("cjEnCaja").innerHTML = (periodo === "hoy" || periodo === "dia") && lista.length ? `💵 Debe haber <b>${pesos(enCaja)}</b> en efectivo en la caja` : "";
 
   const el = $("listaMov");
   if (!lista.length) { el.innerHTML = `<p class="muted">${periodo === "hoy" ? "Hoy no hay movimientos. Toca <b>+ Cobrar</b> para anotar el primero." : "No hay movimientos en este periodo."}</p>`; return; }
   const orden = [...lista].sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
   let html = "", dia = "";
   orden.forEach(m => {
-    if (periodo !== "hoy" && m.fecha !== dia) {
+    if ((periodo === "semana" || periodo === "mes") && m.fecha !== dia) {
       dia = m.fecha;
       const delDia = lista.filter(x => x.fecha === dia && x.tipo === "ingreso");
       html += `<div class="mov-dia"><span>${fechaTitulo(dia)}</span><b>${pesos(suma(delDia))}</b></div>`;
@@ -1409,6 +1415,8 @@ function pintarCaja() {
 }
 
 document.querySelectorAll("[data-periodo]").forEach(b => b.addEventListener("click", () => { periodo = b.dataset.periodo; pintarCaja(); }));
+$("cjDia").value = $("cjDia").max = fechaISO(new Date());
+$("cjDia").addEventListener("change", () => { if (!$("cjDia").value) $("cjDia").value = fechaISO(new Date()); pintarCaja(); });
 
 $("listaMov").addEventListener("click", async (e) => {
   const b = e.target.closest("[data-borrar]");
