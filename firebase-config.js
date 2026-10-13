@@ -83,10 +83,10 @@ export const NEGOCIO = {
 
   // ---- Datos para transferencias (aparecen en la página con botón de copiar) ----
   pago: {
-    banco: "[BANCO]",
-    titular: "[NOMBRE DEL TITULAR]",
-    tarjeta: "[NÚMERO DE TARJETA]",   // ej. "4152 3138 0000 0000"
-    clabe: ""                          // opcional: 18 dígitos. Si lo dejas vacío no aparece
+    banco: "Mercado Pago",
+    titular: "Alexis Uriel Morales Garcia",
+    tarjeta: "",                        // ej. "4152 3138 0000 0000". Vacío = no aparece
+    clabe: "722969014337227343"        // opcional: 18 dígitos. Si lo dejas vacío no aparece
   },
 
   // ---- Quién te corta el pelo ----
@@ -94,10 +94,10 @@ export const NEGOCIO = {
   // Redes: pega el link completo. Las que dejes vacías no aparecen.
   barberos: [
     {
-      nombre: "[NOMBRE DEL BARBERO]",
-      rol: "Barbero",
-      descripcion: "[Descripción: años de experiencia, especialidad (fades, diseños, barba) y algo personal.]",
-      foto: "",
+      nombre: "Woser García",
+      rol: "Barbero profesional · +10 años",
+      descripcion: "Más de 10 años en la barbería, con pasión, disciplina y creatividad. Ha competido en el gremio, salió en Venga la Alegría y tiene más de 12 premios y reconocimientos. Su objetivo va más allá de un corte: resaltar tu personalidad, tu seguridad y tu estilo, con atención profesional y técnicas que marcan la diferencia.",
+      foto: "barbero1.jpg",
       instagram: "",
       tiktok: "",
       facebook: "https://www.facebook.com/profile.php?id=61577432973040"
