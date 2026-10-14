@@ -262,7 +262,7 @@
       <button type="button" data-periodo="mes" aria-pressed="false">Mes</button>
       <button type="button" data-periodo="dia" aria-pressed="false">Por día</button>
     </div>
-    <label id="cjDiaWrap" class="hidden">Elige el día<input id="cjDia" type="date"></label>
+    <div id="cjDiaWrap" class="cal-adm hidden" aria-label="Elige el día"></div>
 
     <section class="caja-total" aria-live="polite">
       <span class="ct-etq" id="cjEtiqueta">Hoy</span>
@@ -1365,7 +1365,7 @@ function escucharCaja() {
 
 function movsDelPeriodo() {
   const hoy = fechaISO(new Date());
-  if (periodo === "dia") return movs.filter(m => m.fecha === $("cjDia").value);
+  if (periodo === "dia") return movs.filter(m => m.fecha === diaCaja);
   const desde = periodo === "hoy" ? hoy : periodo === "semana" ? inicioSemana() : inicioMes();
   return movs.filter(m => m.fecha >= desde && m.fecha <= hoy);
 }
@@ -1379,7 +1379,8 @@ function pintarCaja() {
   const efectivo = suma(ing.filter(m => !m.metodo || m.metodo === "efectivo")), transfer = suma(ing.filter(m => m.metodo === "transferencia")), terminal = suma(ing.filter(m => m.metodo === "terminal"));
   const propinas = ing.reduce((s, m) => s + (Number(m.propina) || 0), 0);
   $("cjDiaWrap").classList.toggle("hidden", periodo !== "dia");
-  $("cjEtiqueta").textContent = periodo === "dia" ? "Entró el " + fechaTitulo($("cjDia").value).replace(/^(Hoy|Mañana) · /, "")
+  if (periodo === "dia") pintarCalCaja();
+  $("cjEtiqueta").textContent = periodo === "dia" ? "Entró el " + fechaTitulo(diaCaja).replace(/^(Hoy|Mañana) · /, "")
     : { hoy: "Entró hoy", semana: "Entró esta semana", mes: "Entró este mes" }[periodo];
   $("cjTotal").textContent = pesos(entro);
   $("cjSub").textContent = ing.length
@@ -1415,8 +1416,37 @@ function pintarCaja() {
 }
 
 document.querySelectorAll("[data-periodo]").forEach(b => b.addEventListener("click", () => { periodo = b.dataset.periodo; pintarCaja(); }));
-$("cjDia").value = $("cjDia").max = fechaISO(new Date());
-$("cjDia").addEventListener("change", () => { if (!$("cjDia").value) $("cjDia").value = fechaISO(new Date()); pintarCaja(); });
+// Calendario de "Por día": cada día muestra lo que entró
+let diaCaja = fechaISO(new Date());
+let mesCaja = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+const corto$ = (n) => n >= 1000 ? "$" + (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, "") + "k" : "$" + n;
+function pintarCalCaja() {
+  const hoy = fechaISO(new Date()), y = mesCaja.getFullYear(), mes = mesCaja.getMonth();
+  const hueco = (new Date(y, mes, 1).getDay() + 6) % 7, diasMes = new Date(y, mes + 1, 0).getDate();
+  const total = {};
+  movs.forEach(m => { if (m.tipo === "ingreso") total[m.fecha] = (total[m.fecha] || 0) + (Number(m.monto) || 0) + (Number(m.propina) || 0); });
+  let celdas = "";
+  for (let i = 0; i < hueco; i++) celdas += "<span></span>";
+  for (let n = 1; n <= diasMes; n++) {
+    const f = fechaISO(new Date(y, mes, n)), t = total[f] || 0, futuro = f > hoy;
+    celdas += `<button type="button" class="ca-d${f === diaCaja ? " sel" : ""}${f === hoy ? " hoy" : ""}${t ? "" : " vacio"}" data-dia-caja="${f}" aria-pressed="${f === diaCaja}"${futuro ? " disabled" : ""}
+      aria-label="${fechaTitulo(f)}: ${pesos(t)}"><b>${n}</b>${t ? `<span class="ca-m">${corto$(t)}</span>` : ""}</button>`;
+  }
+  const min = new Date(); min.setDate(min.getDate() - 90);   // lo que se carga de la caja
+  const minMes = new Date(min.getFullYear(), min.getMonth(), 1), maxMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  $("cjDiaWrap").innerHTML = `<div class="cal-head">
+      <button type="button" class="cal-nav" data-mes-caja="-1" aria-label="Mes anterior"${mesCaja <= minMes ? " disabled" : ""}>‹</button>
+      <b>${MESES[mes]} ${y}</b>
+      <button type="button" class="cal-nav" data-mes-caja="1" aria-label="Mes siguiente"${mesCaja >= maxMes ? " disabled" : ""}>›</button></div>
+    <div class="ca-sem" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+    <div class="ca-grid">${celdas}</div>`;
+}
+$("cjDiaWrap").addEventListener("click", (e) => {
+  const m = e.target.closest("[data-mes-caja]");
+  if (m && !m.disabled) { mesCaja = new Date(mesCaja.getFullYear(), mesCaja.getMonth() + Number(m.dataset.mesCaja), 1); pintarCalCaja(); return; }
+  const d = e.target.closest("[data-dia-caja]");
+  if (d && !d.disabled) { diaCaja = d.dataset.diaCaja; pintarCaja(); }
+});
 
 $("listaMov").addEventListener("click", async (e) => {
   const b = e.target.closest("[data-borrar]");
