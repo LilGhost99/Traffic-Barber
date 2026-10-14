@@ -331,6 +331,16 @@
     </div>
     <div id="listaMov" class="movs"><p class="muted">Cargando…</p></div>
     <div id="avisoCaja" class="aviso error hidden" role="alert"></div>
+    <details class="box sheets-box">
+      <summary>📊 Google Sheets <span id="shEstado" class="hint"></span></summary>
+      <p class="muted" style="font-size:14px">Cada cobro o gasto se copia solo a una hoja de Google. Pega aquí la URL de la aplicación web (ver la guía de LilGhost).</p>
+      <label>URL de la aplicación web<input id="shUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <div class="caja-guardar">
+        <button class="btn btn-ghost" type="button" id="shTodo">Mandar lo de 90 días</button>
+        <button class="btn btn-primary" type="button" id="shGuardar">Guardar</button>
+      </div>
+      <p id="shMsg" class="aviso ok hidden" role="status"></p>
+    </details>
     </div>
 
     <!-- ===== Clientes ===== -->
@@ -1351,6 +1361,7 @@ function inicioMes() { const d = new Date(); return fechaISO(new Date(d.getFullY
 const barberosReales = () => (NEGOCIO.barberos || []).filter(b => b.nombre && !/^\s*\[/.test(b.nombre));
 
 function escucharCaja() {
+  cargarSheets();
   const d = new Date(); d.setDate(d.getDate() - 90);   // shortcut: "Por día" solo ve 90 días atrás; subir si piden más
   const desde = fechaISO(d);
   onSnapshot(query(collection(db, "caja"), where("fecha", ">=", desde)), (snap) => {
@@ -1457,6 +1468,7 @@ $("listaMov").addEventListener("click", async (e) => {
   if (!m || !confirm(`¿Borrar "${m.concepto}" de ${pesos((Number(m.monto) || 0) + (Number(m.propina) || 0))}?`)) return;
   try {
     await deleteDoc(doc(db, "caja", m.id));
+    aSheets([{ ...m, borrar: true }]);
     if (m.citaId) await updateDoc(doc(db, "citas", m.citaId), { cobrada: false }).catch(() => {});
   } catch (ex) { console.error(ex); alert("No se pudo borrar. Intenta de nuevo."); }
 });
@@ -1504,8 +1516,38 @@ $("formCobro").addEventListener("click", (e) => {
 $("gMetodo").addEventListener("click", (e) => { const m = e.target.closest("[data-metodo]"); if (m) { metodoGasto = m.dataset.metodo; seg($("gMetodo"), "data-metodo", metodoGasto); } });
 
 async function guardarMov(datos) {
-  await addDoc(collection(db, "caja"), { ...datos, fecha: fechaISO(new Date()), hora: ahoraHHMM(), creado: serverTimestamp(), por: auth.currentUser?.email || "" });
+  const mov = { ...datos, fecha: fechaISO(new Date()), hora: ahoraHHMM(), por: auth.currentUser?.email || "" };
+  const ref = await addDoc(collection(db, "caja"), { ...mov, creado: serverTimestamp() });
+  aSheets([{ id: ref.id, ...mov }]);
 }
+
+// ---------- Copia de la caja en Google Sheets (Apps Script de sheets-caja.gs) ----------
+// La URL se guarda en caja/_sheets: solo el admin la ve (la caja no es pública).
+let urlSheets = "";
+const cargarSheets = () => getDoc(doc(db, "caja", "_sheets")).then(s => { urlSheets = s.exists() ? s.data().url || "" : ""; $("shUrl").value = urlSheets; $("shEstado").textContent = urlSheets ? "· conectado" : "· sin conectar"; }).catch(() => {});
+function aSheets(lista) {
+  if (!urlSheets || !lista.length) return Promise.resolve();
+  const movs = lista.map(m => ({ id: m.id, fecha: m.fecha, hora: m.hora, tipo: m.tipo, concepto: m.concepto, metodo: metodoTxt(m.metodo),
+    monto: Number(m.monto) || 0, propina: Number(m.propina) || 0, barbero: m.barbero || "", por: m.por || "", borrar: !!m.borrar }));
+  // no-cors: Google no deja leer la respuesta, pero la hoja sí recibe los datos
+  return fetch(urlSheets, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ movs }) }).catch(ex => console.error(ex));
+}
+$("shGuardar").addEventListener("click", async () => {
+  const url = $("shUrl").value.trim();
+  if (url && !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url)) { $("shMsg").className = "aviso error"; $("shMsg").textContent = "Esa URL no parece de Apps Script (termina en /exec)."; return; }
+  try {
+    await setDoc(doc(db, "caja", "_sheets"), { url });
+    urlSheets = url; $("shEstado").textContent = url ? "· conectado" : "· sin conectar";
+    $("shMsg").className = "aviso ok"; $("shMsg").textContent = url ? "Guardado ✓ Toca \"Mandar lo de 90 días\" para pasar lo que ya había." : "Desconectado.";
+  } catch (ex) { console.error(ex); $("shMsg").className = "aviso error"; $("shMsg").textContent = "No se pudo guardar."; }
+});
+$("shTodo").addEventListener("click", async () => {
+  if (!urlSheets) { $("shMsg").className = "aviso error"; $("shMsg").textContent = "Primero guarda la URL."; return; }
+  $("shTodo").disabled = true;
+  await aSheets([...movs].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora)));
+  $("shTodo").disabled = false;
+  $("shMsg").className = "aviso ok"; $("shMsg").textContent = `Mandados ${movs.length} movimientos ✓ (los que ya estaban no se repiten).`;
+});
 
 $("formCobro").addEventListener("submit", async (e) => {
   e.preventDefault();
