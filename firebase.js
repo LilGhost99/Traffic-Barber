@@ -97,21 +97,20 @@ export function diaDe(agenda, NEGOCIO, fecha) {
   return { ...normal, especial: false };
 }
 
-// Horas para citas: cada hora desde que abre (ej. abre 11:30 → 11:30, 12:30, 1:30…),
-// la última al menos 30 min antes de cerrar.
-export function horasCitaDe(info) {
+// Horas para citas: cada `paso` min desde que abre; el servicio (dur min) tiene que terminar antes de cerrar.
+export function horasCitaDe(info, paso = 30, dur = paso) {
   if (!info || !info.abierto) return [];
   const out = [];
-  const desde = aMinH(info.abre), hasta = aMinH(info.cierra) - 30;
-  for (let m = desde; m <= hasta; m += 60) out.push(aHH(m));
+  for (let m = aMinH(info.abre); m + dur <= aMinH(info.cierra); m += paso) out.push(aHH(m));
   return out;
 }
 
-// ¿Esa hora choca con otra cita? (cada cita dura 1 hora)
-export function chocaHora(hora, ocupadas) {
-  const m = aMinH(hora);
-  return ocupadas.some((o) => Math.abs(aMinH(o) - m) < 60);
+// ¿Una cita de `dur` min a esa hora se encima con otra? ocupadas: [{hora, min}] (sin min = 60, citas viejas)
+export function chocaHora(hora, ocupadas, dur = 60) {
+  const a = aMinH(hora);
+  return ocupadas.some((o) => { const b = aMinH(o.hora), d = Number(o.min) || 60; return a < b + d && b < a + dur; });
 }
+export const durDe = (NEGOCIO, servicioId) => (NEGOCIO.servicios.find((s) => s.id === servicioId) || {}).min || 60;
 
 // "11:30" → "11:30 am", "13:00" → "1 pm"
 export function horaBonita(hhmm) {

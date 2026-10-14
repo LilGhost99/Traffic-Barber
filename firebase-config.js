@@ -63,14 +63,15 @@ export const NEGOCIO = {
 
   // ---- Precios: sinCita = llegando sin apartar · conCita = agendando ----
   servicios: [
-    { id: "corte",        nombre: "Corte de cabello", sinCita: 150, conCita: 200 },
-    { id: "corte-greca",  nombre: "Corte y greca",    sinCita: 200, conCita: 200 },
-    { id: "corte-ceja",   nombre: "Corte y ceja",     sinCita: 180, conCita: 200 },
-    { id: "cejas",        nombre: "Cejas",            sinCita: 50,  conCita: 50  },
-    { id: "pigmento",     nombre: "Pigmento",         sinCita: 50,  conCita: 50  },
-    { id: "corte-barba",  nombre: "Corte y barba",    sinCita: 250, conCita: 250 },
-    { id: "corte-facial", nombre: "Corte y facial",   sinCita: 250, conCita: 250 },
-    { id: "corte-vip",    nombre: "Corte VIP",        sinCita: 400, conCita: 500 }
+    // min = cuánto dura (para no encimar citas en el calendario)
+    { id: "corte",        nombre: "Corte de cabello", sinCita: 150, conCita: 200, min: 40 },
+    { id: "corte-greca",  nombre: "Corte y greca",    sinCita: 200, conCita: 200, min: 40 },
+    { id: "corte-ceja",   nombre: "Corte y ceja",     sinCita: 180, conCita: 200, min: 40 },
+    { id: "cejas",        nombre: "Cejas",            sinCita: 50,  conCita: 50,  min: 20 },
+    { id: "pigmento",     nombre: "Pigmento",         sinCita: 50,  conCita: 50,  min: 20 },
+    { id: "corte-barba",  nombre: "Corte y barba",    sinCita: 250, conCita: 250, min: 50 },
+    { id: "corte-facial", nombre: "Corte y facial",   sinCita: 250, conCita: 250, min: 50 },
+    { id: "corte-vip",    nombre: "Corte VIP",        sinCita: 400, conCita: 500, min: 60 }
   ],
 
   // ---- Lo que incluye cada tipo de visita ----
@@ -81,7 +82,7 @@ export const NEGOCIO = {
 
   // ---- Horario (0 = domingo, 1 = lunes … 6 = sábado) ----
   horario: { dias: [1, 2, 3, 4, 5, 6], abre: "11:30", cierra: "22:00" },
-  citas: { cadaMinutos: 60, primera: "11:30", ultima: "21:30", diasAdelante: 30 },   // las horas salen del horario: cada hora desde que abre
+  citas: { cadaMinutos: 30, primera: "11:30", ultima: "21:30", diasAdelante: 30 },   // horas cada 30 min desde que abre; cada servicio ocupa su "min"
 
   // ---- Datos para transferencias (aparecen en la página con botón de copiar) ----
   pago: {

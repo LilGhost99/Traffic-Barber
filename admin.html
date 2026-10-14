@@ -471,7 +471,7 @@
 </main>
 
 <script type="module">
-import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos, premiosDe, diaDe, horasCitaDe, agendaLimpia, chocaHora, horaBonita } from "./firebase.js";
+import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos, premiosDe, diaDe, horasCitaDe, agendaLimpia, chocaHora, horaBonita, durDe } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 const SLUG = NEGOCIO.nombre.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -886,7 +886,7 @@ async function cambiarEstado(c, estado) {
   try {
     await updateDoc(doc(db, "citas", c.id), { estado, actualizado: serverTimestamp(), por: auth.currentUser?.email || "" });
     if (estado === "cancelada" || estado === "novino") await liberarHora(c);
-    if (estado === "confirmada" && (c.estado === "cancelada" || c.estado === "novino")) await apartarHora(c.fecha, c.hora);
+    if (estado === "confirmada" && (c.estado === "cancelada" || c.estado === "novino")) await apartarHora(c.fecha, c.hora, minDe(c));
   }
   catch (ex) { console.error(ex); alert("No se pudo guardar. Intenta de nuevo."); }
 }
@@ -894,9 +894,14 @@ async function cambiarEstado(c, estado) {
 // ---------- Horas apartadas (lo que ve la página para no agendar encima) ----------
 const ACTIVAS = ["pendiente", "confirmada", "atendida"];
 const slotDe = (fecha, hora) => `${fecha}_${hora}`;
-function apartarHora(fecha, hora) {
-  return setDoc(doc(db, "ocupados", slotDe(fecha, hora)), { fecha, hora, creado: serverTimestamp() });
+const PASO = NEGOCIO.citas.cadaMinutos;
+const minDe = (c) => c.min || durDe(NEGOCIO, c.servicioId);   // citas viejas no traen "min"
+function apartarHora(fecha, hora, min = 60) {
+  return setDoc(doc(db, "ocupados", slotDe(fecha, hora)), { fecha, hora, min, creado: serverTimestamp() });
 }
+// Lo que ya está ocupado ese día: [{hora, min}] de citas activas + horas bloqueadas
+const tomadasAdm = (f) => citas.filter(c => c.fecha === f && ACTIVAS.includes(c.estado)).map(c => ({ hora: c.hora, min: minDe(c) }))
+  .concat(ocupadosAdm.filter(o => o.fecha === f).map(o => ({ hora: o.hora, min: o.min || 60 })));
 async function liberarHora(c) {
   const otra = citas.some(x => x.id !== c.id && x.fecha === c.fecha && x.hora === c.hora && ACTIVAS.includes(x.estado));
   if (!otra) await deleteDoc(doc(db, "ocupados", slotDe(c.fecha, c.hora))).catch(ex => console.error(ex));
@@ -906,7 +911,7 @@ const yaApartadas = new Set();
 function sincronizarOcupados() {
   const hoy = fechaISO(new Date());
   citas.filter(c => c.fecha >= hoy && (c.estado === "pendiente" || c.estado === "confirmada") && !yaApartadas.has(c.id) && c.origen !== "walkin")
-    .forEach(c => { yaApartadas.add(c.id); apartarHora(c.fecha, c.hora).catch(ex => console.error(ex)); });
+    .forEach(c => { yaApartadas.add(c.id); apartarHora(c.fecha, c.hora, minDe(c)).catch(ex => console.error(ex)); });
 }
 
 async function borrarCita(c) {
@@ -976,18 +981,18 @@ $("listaCitas").addEventListener("click", accionCita);
 // ---------- Agendar desde el panel (walk-ins y citas por teléfono) ----------
 let agCuando = "ahora", agServ = null, agHora = "", agClienteId = "", agBuscado = "";
 const horaCortaA = horaBonita;
-const horasDelDia = (f) => horasCitaDe(diaDe(agendaAdm, NEGOCIO, f));
+const durAg = () => agServ ? durDe(NEGOCIO, agServ) : PASO;
+const horasDelDia = (f) => horasCitaDe(diaDe(agendaAdm, NEGOCIO, f), PASO, durAg());
 function pintarAgHoras() {
   const f = $("agFecha").value;
   if (!f) { $("agHoras").innerHTML = ""; return; }
   if (!diaDe(agendaAdm, NEGOCIO, f).abierto) { $("agHoras").innerHTML = `<p class="muted" style="grid-column:1/-1;margin:0">Ese día está cerrado. Si quieres abrirlo, tócalo en el Calendario.</p>`; agHora = ""; return; }
   const ahora = new Date(), esHoy = f === fechaISO(ahora), minAhora = ahora.getHours() * 60 + ahora.getMinutes();
-  const ocup = new Set(citas.filter(c => c.fecha === f && ACTIVAS.includes(c.estado)).map(c => c.hora));
-  ocupadosAdm.forEach(o => { if (o.fecha === f) ocup.add(o.hora); });
+  const ocup = tomadasAdm(f);
   $("agHoras").innerHTML = horasDelDia(f).map(h => {
     const [hh, mm] = h.split(":").map(Number);
     const pasada = esHoy && hh * 60 + mm < minAhora - 30;
-    const ocupada = chocaHora(h, [...ocup]);
+    const ocupada = chocaHora(h, ocup, durAg());
     if (agHora === h && (ocupada || pasada)) agHora = "";
     return `<button type="button" data-hora="${h}" aria-pressed="${agHora === h}"${ocupada || pasada ? " disabled" : ""}>${horaCortaA(h)}${ocupada ? "<small>Ocupada</small>" : ""}</button>`;
   }).join("");
@@ -1036,7 +1041,7 @@ $("agFecha").addEventListener("change", pintarAgHoras);
 $("formAgenda").addEventListener("click", (e) => {
   const c = e.target.closest("[data-cuando]"); if (c) return ponerCuando(c.dataset.cuando);
   const h = e.target.closest("[data-hora]"); if (h && !h.disabled) { agHora = h.dataset.hora; seg($("agHoras"), "data-hora", agHora); return; }
-  const sv = e.target.closest("[data-serv]"); if (sv) { agServ = sv.dataset.serv; pintarAgServicios(); }
+  const sv = e.target.closest("[data-serv]"); if (sv) { agServ = sv.dataset.serv; pintarAgServicios(); if (agCuando === "luego") pintarAgHoras(); }
 });
 // Al poner el número se busca si ya tiene tarjeta
 $("agTel").addEventListener("input", async (e) => {
@@ -1078,7 +1083,7 @@ $("formAgenda").addEventListener("submit", async (e) => {
   if (!sv) return falla("Elige el servicio.");
   if (!ahora && !fecha) return falla("Elige el día.");
   if (!ahora && !hora) return falla("Elige la hora.");
-  if (!ahora && chocaHora(hora, citas.filter(c => c.fecha === fecha && ACTIVAS.includes(c.estado)).map(c => c.hora))) return falla("Esa hora ya está ocupada. Elige otra.");
+  if (!ahora && chocaHora(hora, tomadasAdm(fecha), sv.min || 60)) return falla("Esa hora ya está ocupada. Elige otra.");
   const btn = $("agGuardar"); btn.disabled = true;
   try {
     let clienteId = agClienteId, nuevaTarjeta = false;
@@ -1093,14 +1098,14 @@ $("formAgenda").addEventListener("submit", async (e) => {
     const ref = doc(collection(db, "citas"));
     const datos = {
       nombre, telefono, servicioId: sv.id, servicio: sv.nombre,
-      precio: ahora ? sv.sinCita : sv.conCita, precioNormal: ahora ? sv.sinCita : sv.conCita,
+      precio: ahora ? sv.sinCita : sv.conCita, precioNormal: ahora ? sv.sinCita : sv.conCita, min: sv.min || 60,
       fecha, hora, promo: "", barbero: $("agBarbero").value || "", comentario: $("agNota").value.trim().slice(0, 120),
       clienteId, nuevaTarjeta, estado: "confirmada", origen: ahora ? "walkin" : "panel",
       creado: serverTimestamp(), por: auth.currentUser?.email || ""
     };
     const lote = writeBatch(db);
     lote.set(ref, datos);
-    if (!ahora) { lote.set(doc(db, "ocupados", slotDe(fecha, hora)), { fecha, hora, creado: serverTimestamp() }); yaApartadas.add(ref.id); }
+    if (!ahora) { lote.set(doc(db, "ocupados", slotDe(fecha, hora)), { fecha, hora, min: sv.min || 60, creado: serverTimestamp() }); yaApartadas.add(ref.id); }
     await lote.commit();
     cerrarAgenda();
     if (ahora) {
@@ -1220,25 +1225,29 @@ function pintarDiaAdmin() {
   }
 
   // Horas del día: lo que está ocupado, libre o bloqueado
-  // Cada cita cae en el espacio de 1 hora donde empieza (ej. 12:00 cae en el de 11:30)
-  const base = info.abierto ? horasCitaDe(info) : [];
+  // Espacios de PASO min; cada cita sale en el espacio donde empieza y los que dura salen "en cita"
+  const base = info.abierto ? horasCitaDe(info, PASO, PASO) : [];
   const aM = (t) => { const [a, b] = t.split(":").map(Number); return a * 60 + b; };
-  const espacioDe = (hora) => base.find(h => aM(h) <= aM(hora) && aM(hora) < aM(h) + 60) || hora;
+  const espacioDe = (hora) => base.find(h => aM(h) <= aM(hora) && aM(hora) < aM(h) + PASO) || hora;
+  const tomadas = activas.map(c => ({ hora: c.hora, min: minDe(c) }));
   const horas = new Set(base);
   activas.forEach(c => horas.add(espacioDe(c.hora)));
   const ahora = new Date(), minAhora = ahora.getHours() * 60 + ahora.getMinutes();
   if (horas.size) {
     html += `<div class="slots">` + [...horas].sort().map(h => {
       const enHora = activas.filter(c => espacioDe(c.hora) === h);
-      const bloq = ocupadosAdm.find(o => o.fecha === f && o.hora === h && !enHora.length);
+      const bloq = !enHora.length && ocupadosAdm.find(o => o.fecha === f && o.bloqueo && chocaHora(h, [{ hora: o.hora, min: o.min || 60 }], PASO));
+      const sigue = !enHora.length && !bloq && chocaHora(h, tomadas, PASO);
       const ya = pasado || (f === hoy && aM(h) < minAhora - 30);
       let cuerpo, acc = "", clase;
       if (enHora.length) {
         clase = "ocup";
-        cuerpo = enHora.map(c => `<span class="s-cita"><b>${escapar(c.nombre.split(" ")[0])}</b> · ${escapar(c.servicio)}${c.hora !== h ? ` · ${hora12(c.hora)}` : ""} <i class="estado-c ${escapar(c.estado)}">${ESTADOS[c.estado] || ""}</i></span>`).join("");
+        cuerpo = enHora.map(c => `<span class="s-cita"><b>${escapar(c.nombre.split(" ")[0])}</b> · ${escapar(c.servicio)} · ${minDe(c)} min${c.hora !== h ? ` · ${hora12(c.hora)}` : ""} <i class="estado-c ${escapar(c.estado)}">${ESTADOS[c.estado] || ""}</i></span>`).join("");
       } else if (bloq) {
         clase = "bloq"; cuerpo = `<span>🔒 Bloqueada</span>`;
         if (!pasado) acc = `<button type="button" class="btn btn-ghost btn-sm" data-desbloquear="${escapar(bloq.id)}">Quitar</button>`;
+      } else if (sigue) {
+        clase = "ocup sigue"; cuerpo = `<span class="muted">↳ sigue la cita de arriba</span>`;
       } else {
         clase = "libre"; cuerpo = `<span class="muted">${ya ? "—" : "Libre"}</span>`;
         if (!ya && info.abierto) acc = `<button type="button" class="btn btn-primary btn-sm" data-agendar-hora="${h}">Agendar</button><button type="button" class="btn btn-ghost btn-sm" data-bloquear="${h}" aria-label="Bloquear ${hora12(h)}">🔒</button>`;
@@ -1281,7 +1290,7 @@ $("diaAdmin").addEventListener("click", async (e) => {
   const bl = e.target.closest("[data-bloquear]");
   if (bl) {
     bl.disabled = true;
-    try { await setDoc(doc(db, "ocupados", slotDe(f, bl.dataset.bloquear)), { fecha: f, hora: bl.dataset.bloquear, bloqueo: true, creado: serverTimestamp() }); }
+    try { await setDoc(doc(db, "ocupados", slotDe(f, bl.dataset.bloquear)), { fecha: f, hora: bl.dataset.bloquear, min: PASO, bloqueo: true, creado: serverTimestamp() }); }
     catch (ex) { console.error(ex); alert("No se pudo bloquear. Intenta de nuevo."); bl.disabled = false; }
     return;
   }

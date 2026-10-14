@@ -1,6 +1,6 @@
 // Agendar cita: elige servicio, día (calendario) y hora → se crea la tarjeta (si no tiene),
 // se aparta la hora en "ocupados" y se guarda la cita. Todo cae directo en el panel.
-import { db, configurado, MESES, escapar, diaDe, horasCitaDe, chocaHora, horaBonita } from "./firebase.js";
+import { db, configurado, MESES, escapar, diaDe, horasCitaDe, chocaHora, horaBonita, durDe } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 import { collection, addDoc, doc, getDoc, getDocs, serverTimestamp, writeBatch, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -71,13 +71,14 @@ function pintarBarberos() {
 const slotDe = (fecha, hora) => `${fecha}_${hora}`;
 const horaCorta = horaBonita;
 // Horas ya apartadas de ese día (ids "2026-10-12_11:30")
-const tomadasDe = (fecha) => [...ocupados].filter((id) => id.startsWith(fecha + "_")).map((id) => id.slice(11));
-const estaOcupada = (fecha, h) => chocaHora(h, tomadasDe(fecha));
-let ocupados = new Set();   // "2026-10-12_15:00"
+const tomadasDe = (fecha) => [...ocupados].filter(([id]) => id.startsWith(fecha + "_")).map(([id, min]) => ({ hora: id.slice(11), min }));
+const durActual = () => valor("servicio") ? durDe(NEGOCIO, valor("servicio")) : NEGOCIO.citas.cadaMinutos;
+const estaOcupada = (fecha, h) => chocaHora(h, tomadasDe(fecha), durActual());
+let ocupados = new Map();   // "2026-10-12_15:00" → minutos que dura
 
 let agenda = null;          // horario que pone el barbero desde el panel (config/agenda)
 function horasDe(fecha) {
-  const lista = horasCitaDe(diaDe(agenda, NEGOCIO, fecha)).map(aMin);
+  const lista = horasCitaDe(diaDe(agenda, NEGOCIO, fecha), NEGOCIO.citas.cadaMinutos, durActual()).map(aMin);
   const hoy = new Date();
   if (fecha === fechaISO(hoy)) {
     const ahora = hoy.getHours() * 60 + hoy.getMinutes() + 30;   // al menos 30 min de anticipación
@@ -149,7 +150,7 @@ function pintarHoras() {
 function escucharOcupados() {
   const q = query(collection(db, "ocupados"), where("fecha", ">=", fechaISO(hoy0())), where("fecha", "<=", fechaISO(limite())));
   onSnapshot(q, (snap) => {
-    ocupados = new Set(snap.docs.map((d) => d.id));
+    ocupados = new Map(snap.docs.map((d) => [d.id, d.data().min || 60]));
     pintarDias(); pintarHoras(); resumen();
   }, (ex) => console.error(ex));
   onSnapshot(doc(db, "config", "agenda"), (snap) => {
@@ -288,11 +289,11 @@ $("formCita").addEventListener("submit", async (e) => {
     // Se aparta la hora y se guarda la cita juntas: si alguien ya la ganó, no se guarda nada.
     const ref = doc(collection(db, "citas"));
     const lote = writeBatch(db);
-    lote.set(doc(db, "ocupados", slotDe(fecha, hora)), { fecha, hora, creado: serverTimestamp() });
+    lote.set(doc(db, "ocupados", slotDe(fecha, hora)), { fecha, hora, min: servicio.min || 60, creado: serverTimestamp() });
     lote.set(ref, {
       nombre, telefono,
       servicioId: servicio.id, servicio: servicio.nombre, precio: cobro.precio, precioNormal: cobro.normal,
-      fecha, hora, promo, barbero, comentario,
+      fecha, hora, min: servicio.min || 60, promo, barbero, comentario,
       clienteId: cliente.id, nuevaTarjeta,
       estado: "pendiente", creado: serverTimestamp()
     });
@@ -300,7 +301,7 @@ $("formCita").addEventListener("submit", async (e) => {
     catch (ex) {
       const tomada = await getDoc(doc(db, "ocupados", slotDe(fecha, hora))).then((d) => d.exists()).catch(() => false);
       if (tomada) {
-        ocupados.add(slotDe(fecha, hora)); pintarDias(); pintarHoras(); resumen();
+        ocupados.set(slotDe(fecha, hora), 60); pintarDias(); pintarHoras(); resumen();
         error(`Las ${horaCorta(hora)} se acaban de ocupar. Elige otra hora.`);
         btn.disabled = false; btn.textContent = "Apartar cita";
         return;
@@ -362,6 +363,7 @@ pintarBarberos();
 pintarDias();
 prepararCumple();
 document.addEventListener("change", (e) => {
+  if (e.target.name === "servicio") { pintarDias(); pintarHoras(); }   // otra duración → otras horas libres
   if (e.target.name === "dia") { pintarHoras(); setTimeout(() => $("opHoras").scrollIntoView({ behavior: "smooth", block: "nearest" }), 60); }
   if (["servicio", "dia", "hora"].includes(e.target.name)) resumen();
 });
