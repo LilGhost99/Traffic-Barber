@@ -31,7 +31,9 @@ function pintarPremios(cfg = {}) {
   const textos = {
     mitad: cfg.premioMitad || NEGOCIO.premioMitad.texto,
     final: cfg.premioFinal || NEGOCIO.premioFinal.texto,
-    cumple: cfg.promoCumple || NEGOCIO.promoCumple
+    cumple: cfg.promoCumple || NEGOCIO.promoCumple,
+    mitadPro: cfg.premioMitadPro || NEGOCIO.pro?.premioMitad,
+    finalPro: cfg.premioFinalPro || NEGOCIO.pro?.premioFinal
   };
   document.querySelectorAll("[data-premio]").forEach((el) => {
     const t = textos[el.dataset.premio];

@@ -403,6 +403,8 @@
       <form id="formConfig" style="gap:12px">
         <label>Premio del 5° corte<input id="cMitad" maxlength="60"></label>
         <label>Premio del 10° corte<input id="cFinal" maxlength="60"></label>
+        <label>⭐ PRO · premio del 5° corte<span class="hint">Clientes que ya llenaron una tarjeta</span><input id="cMitadPro" maxlength="60"></label>
+        <label>⭐ PRO · premio del 10° corte<input id="cFinalPro" maxlength="60"></label>
         <label>Regalo de cumpleaños<span class="hint">Se le muestra al cliente todo el mes de su cumpleaños</span><input id="cCumple" maxlength="80"></label>
         <button class="btn btn-primary btn-block" type="submit">Guardar</button>
       </form>
@@ -459,7 +461,7 @@
 </main>
 
 <script type="module">
-import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos, diaDe, horasCitaDe, agendaLimpia, chocaHora, horaBonita } from "./firebase.js";
+import { db, auth, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos, premiosDe, diaDe, horasCitaDe, agendaLimpia, chocaHora, horaBonita } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 const SLUG = NEGOCIO.nombre.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -467,11 +469,11 @@ import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnaps
 
 const $ = id => document.getElementById(id);
 const MAX = NEGOCIO.sellosPorTarjeta, MITAD = NEGOCIO.premioMitad, FIN = NEGOCIO.premioFinal;
-function textoBotones() {
-  $("aFacial").textContent = `Entregar ${MITAD.texto.toLowerCase()} (${MITAD.en}° corte)`;
-  $("aPremio").textContent = `Entregar ${FIN.texto.toLowerCase()} y empezar tarjeta nueva`;
+const P = (c) => premiosDe(c, NEGOCIO);   // premios según el nivel del cliente (normal o PRO)
+function textoBotones(c) {
+  $("aFacial").textContent = `Entregar ${P(c).mitad.texto.toLowerCase()} (${MITAD.en}° corte)`;
+  $("aPremio").textContent = `Entregar ${P(c).fin.texto.toLowerCase()} y empezar tarjeta nueva`;
 }
-textoBotones();
 
 function vista(v) {
   ["vistaLogin","vistaPanel"].forEach(x => $(x).classList.toggle("hidden", x !== v));
@@ -1765,14 +1767,17 @@ function pintarCliente(c) {
   const s = c.sellos || 0;
   $("dNombre").textContent = c.nombre;
   $("dDatos").innerHTML = `<span>📱 ${escapar(c.telefono)}</span>${c.cumple ? `<span>🎂 ${escapar(cumpleBonito(c.cumple))}</span>` : ""}${c.tarjetas ? `<span>Tarjetas completas: ${c.tarjetas}</span>` : ""}`;
-  pintarSellos($("dSellos"), s, NEGOCIO);
+  pintarSellos($("dSellos"), s, NEGOCIO, c);
+  textoBotones(c);
+  $("detalle").classList.toggle("pro", P(c).pro);
   const cum = $("dCumple");
   if (esMesDeCumple(c.cumple)) { cum.innerHTML = `🎂 Cumple este mes. Regalo: <b>${escapar(NEGOCIO.promoCumple)}</b>`; cum.classList.remove("hidden"); }
   else cum.classList.add("hidden");
 
   let estado = `${s} de ${MAX} sellos.`;
-  if (s >= MITAD.en && !c.facialCanjeado) estado += ` <b>Entrégale hoy: ${escapar(MITAD.texto.toLowerCase())}.</b>`;
-  if (s >= FIN.en) estado += ` <b>Tarjeta completa: entrega ${escapar(FIN.texto)}.</b>`;
+  if (P(c).pro) estado = "⭐ Cliente PRO · " + estado;
+  if (s >= MITAD.en && !c.facialCanjeado) estado += ` <b>Entrégale hoy: ${escapar(P(c).mitad.texto.toLowerCase())}.</b>`;
+  if (s >= FIN.en) estado += ` <b>Tarjeta completa: entrega ${escapar(P(c).fin.texto)}.</b>`;
   $("dEstado").innerHTML = estado;
 
   const link = new URL("tarjeta.html?id=" + encodeURIComponent(actual), location.href).href;
@@ -1825,8 +1830,8 @@ async function accion(tipo, cambio, mensaje) {
 
 const selloCambio = c => (c.sellos || 0) < MAX ? { sellos: (c.sellos || 0) + 1, ultimaVisita: serverTimestamp() } : null;
 const selloMensaje = r => {
-  if (r.sellos >= FIN.en) return `Visita sellada ✓ ¡Tarjeta completa! Entrégale hoy: ${FIN.texto}.`;
-  if (r.sellos >= MITAD.en && !r.facialCanjeado) return `Visita sellada ✓ ¡Hoy le toca su ${MITAD.texto.toLowerCase()}!`;
+  if (r.sellos >= FIN.en) return `Visita sellada ✓ ¡Tarjeta completa! Entrégale hoy: ${P(r).fin.texto}.`;
+  if (r.sellos >= MITAD.en && !r.facialCanjeado) return `Visita sellada ✓ ¡Hoy le toca su ${P(r).mitad.texto.toLowerCase()}!`;
   return "Visita sellada ✓";
 };
 $("aSellar").addEventListener("click", async () => { if (await accion("sello", selloCambio, selloMensaje)) mostrarCobroRapido(null); });
@@ -1838,12 +1843,12 @@ $("aQuitar").addEventListener("click", () => {
 });
 $("aFacial").addEventListener("click", () => accion("premio-" + MITAD.en,
   c => ({ facialCanjeado: true }),
-  `${MITAD.texto}: entregado ✓`));
+  () => `${P(actualDatos).mitad.texto}: entregado ✓`));
 $("aPremio").addEventListener("click", () => {
-  if (!confirm(`¿Entregar ${FIN.texto} y empezar una tarjeta nueva?`)) return;
+  if (!confirm(`¿Entregar ${P(actualDatos).fin.texto} y empezar una tarjeta nueva?${P(actualDatos).pro ? "" : " (Sube a cliente PRO ⭐)"}`)) return;
   accion("premio-" + FIN.en,
     c => ({ sellos: 0, facialCanjeado: false, tarjetas: (c.tarjetas || 0) + 1 }),
-    "Premio entregado. Tarjeta nueva lista ✓");
+    "Premio entregado ✓ Tarjeta nueva lista: ya es cliente PRO ⭐");
 });
 $("aBorrar").addEventListener("click", async () => {
   if (!actual || !actualDatos) return;
@@ -2037,10 +2042,13 @@ function aplicarConfig(cfg) {
   if (cfg.premioMitad) MITAD.texto = cfg.premioMitad;
   if (cfg.premioFinal) FIN.texto = cfg.premioFinal;
   if (cfg.promoCumple) NEGOCIO.promoCumple = cfg.promoCumple;
+  if (cfg.premioMitadPro) NEGOCIO.pro.premioMitad = cfg.premioMitadPro;
+  if (cfg.premioFinalPro) NEGOCIO.pro.premioFinal = cfg.premioFinalPro;
+  $("cMitadPro").value = NEGOCIO.pro.premioMitad;
+  $("cFinalPro").value = NEGOCIO.pro.premioFinal;
   $("cMitad").value = MITAD.texto;
   $("cFinal").value = FIN.texto;
   $("cCumple").value = NEGOCIO.promoCumple;
-  textoBotones();
   if (actualDatos) pintarCliente(actualDatos);
 }
 
@@ -2052,12 +2060,13 @@ function escucharConfig() {
 $("formConfig").addEventListener("submit", async (e) => {
   e.preventDefault();
   const premioMitad = $("cMitad").value.trim(), premioFinal = $("cFinal").value.trim(), promoCumple = $("cCumple").value.trim();
+  const premioMitadPro = $("cMitadPro").value.trim() || NEGOCIO.pro.premioMitad, premioFinalPro = $("cFinalPro").value.trim() || NEGOCIO.pro.premioFinal;
   const aviso = $("cAviso");
   if (!premioMitad || !premioFinal || !promoCumple) {
     aviso.className = "aviso error"; aviso.textContent = "Llena los tres campos."; return;
   }
   try {
-    await setDoc(doc(db, "config", "negocio"), { premioMitad, premioFinal, promoCumple, actualizado: serverTimestamp() }, { merge: true });
+    await setDoc(doc(db, "config", "negocio"), { premioMitad, premioFinal, promoCumple, premioMitadPro, premioFinalPro, actualizado: serverTimestamp() }, { merge: true });
     aviso.className = "aviso ok"; aviso.textContent = "Guardado ✓ Ya se ve en las tarjetas de los clientes.";
   } catch (ex) {
     console.error(ex);

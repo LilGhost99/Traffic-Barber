@@ -132,7 +132,7 @@
 <footer class="pie"><span data-t="{nombre} · {zona}, {ciudad}">Traffic Barber · Real de Toledo, Pachuca</span> · <a href="privacidad.html">Aviso de privacidad</a> · Hecho por <a href="https://lilghost99.github.io/Studio/" target="_blank" rel="noopener">LilGhost Studio</a></footer>
 
 <script type="module">
-import { db, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos } from "./firebase.js";
+import { db, configurado, MESES, esMesDeCumple, cumpleBonito, escapar, pintarSellos, premiosDe } from "./firebase.js";
 import { NEGOCIO } from "./firebase-config.js";
 import { collection, addDoc, doc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -208,7 +208,7 @@ let nombreActual = "";
 const urlTarjeta = () => location.origin + location.pathname + "?id=" + encodeURIComponent(idActual);
 
 function textoEstado(c) {
-  const s = c.sellos || 0, mitad = NEGOCIO.premioMitad, fin = NEGOCIO.premioFinal;
+  const s = c.sellos || 0, { mitad, fin } = premiosDe(c, NEGOCIO);
   if (s >= fin.en) return `¡Tarjeta completa! Pídele hoy al barbero tu <b>${escapar(fin.texto)}</b>.`;
   let t = "";
   if (s < mitad.en) t = `Te faltan <b>${mitad.en - s}</b> sello${mitad.en - s === 1 ? "" : "s"} para tu <b>${escapar(mitad.texto)}</b>.`;
@@ -242,8 +242,10 @@ function pintarTarjeta(c, id) {
     ultimoCliente = c;
     nombreActual = c.nombre;
     $("tNombre").textContent = c.nombre;
-    $("tSub").textContent = (c.tarjetas ? `Tarjeta #${c.tarjetas + 1} · ` : "") + "Cliente frecuente";
-    pintarSellos($("tSellos"), c.sellos || 0, NEGOCIO);
+    const pro = premiosDe(c, NEGOCIO).pro;
+    document.querySelector(".tarjeta").classList.toggle("pro", pro);
+    $("tSub").textContent = pro ? `Cliente PRO · Tarjeta #${c.tarjetas + 1}` : "Cliente frecuente";
+    pintarSellos($("tSellos"), c.sellos || 0, NEGOCIO, c);
     if (sellosPrevios !== null && (c.sellos || 0) > sellosPrevios) {
       const nuevo = $("tSellos").children[(c.sellos || 1) - 1];
       if (nuevo) nuevo.classList.add("nuevo");
@@ -301,6 +303,8 @@ function escucharAjustes() {
     const cfg = snap.data();
     if (cfg.premioMitad) NEGOCIO.premioMitad.texto = cfg.premioMitad;
     if (cfg.premioFinal) NEGOCIO.premioFinal.texto = cfg.premioFinal;
+    if (cfg.premioMitadPro) NEGOCIO.pro.premioMitad = cfg.premioMitadPro;
+    if (cfg.premioFinalPro) NEGOCIO.pro.premioFinal = cfg.premioFinalPro;
     if (cfg.promoCumple) NEGOCIO.promoCumple = cfg.promoCumple;
     if (ultimoCliente && idActual) pintarTarjeta(ultimoCliente, idActual);
   }, (ex) => console.error(ex));

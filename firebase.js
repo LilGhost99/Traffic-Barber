@@ -37,12 +37,24 @@ export function premioCorto(texto) {
   return palabras.slice(0, 2).join("\n").toUpperCase();
 }
 
-// Dibuja la cuadrícula de sellos dentro de `el`
-export function pintarSellos(el, sellos, NEGOCIO) {
+// Nivel PRO: ya llenó al menos una tarjeta
+export const esPro = (c) => (c?.tarjetas || 0) >= 1;
+export function premiosDe(c, NEGOCIO) {
+  const pro = esPro(c) && NEGOCIO.pro;
+  return {
+    pro: !!pro,
+    mitad: { en: NEGOCIO.premioMitad.en, texto: pro ? NEGOCIO.pro.premioMitad : NEGOCIO.premioMitad.texto },
+    fin: { en: NEGOCIO.premioFinal.en, texto: pro ? NEGOCIO.pro.premioFinal : NEGOCIO.premioFinal.texto }
+  };
+}
+
+// Dibuja la cuadrícula de sellos dentro de `el` (c = el cliente, para saber si es PRO)
+export function pintarSellos(el, sellos, NEGOCIO, c) {
   el.innerHTML = "";
+  const { mitad, fin } = premiosDe(c, NEGOCIO);
   for (let i = 1; i <= NEGOCIO.sellosPorTarjeta; i++) {
     const s = document.createElement("div");
-    const premio = i === NEGOCIO.premioMitad.en ? NEGOCIO.premioMitad.texto : i === NEGOCIO.premioFinal.en ? NEGOCIO.premioFinal.texto : "";
+    const premio = i === mitad.en ? mitad.texto : i === fin.en ? fin.texto : "";
     s.className = "sello" + (i <= sellos ? " lleno" : "") + (premio ? " premio" : "") + (premio && i > sellos ? " con-texto" : "");
     s.textContent = i <= sellos ? "✓" : (premio ? premioCorto(premio) : i);
     if (premio) s.title = premio;

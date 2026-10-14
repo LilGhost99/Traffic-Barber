@@ -52,6 +52,8 @@ export const NEGOCIO = {
   sellosPorTarjeta: 10,
   premioMitad: { en: 5,  texto: "Facial gratis" },
   premioFinal: { en: 10, texto: "50% de descuento en corte" },
+  // Nivel PRO: al llenar su primera tarjeta, el cliente sube a PRO (diseño dorado y estos premios)
+  pro: { premioMitad: "Facial + ceja gratis", premioFinal: "Corte gratis" },
   promoCumple: "[PROMO DE CUMPLEAÑOS, ej. corte a mitad de precio]",
 
   // Promos de ejemplo: solo se ven mientras no haya promos en el panel
