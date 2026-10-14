@@ -62,16 +62,19 @@ export const NEGOCIO = {
   ],
 
   // ---- Precios: sinCita = llegando sin apartar · conCita = agendando ----
+  notaPrecios: "Si vienes acompañado, a tu acompañante lo consentimos sin costo.",
   servicios: [
-    // min = cuánto dura (para no encimar citas en el calendario)
-    { id: "corte",        nombre: "Corte de cabello", sinCita: 150, conCita: 200, min: 40 },
-    { id: "corte-greca",  nombre: "Corte y greca",    sinCita: 200, conCita: 200, min: 40 },
-    { id: "corte-ceja",   nombre: "Corte y ceja",     sinCita: 180, conCita: 200, min: 40 },
-    { id: "cejas",        nombre: "Cejas",            sinCita: 50,  conCita: 50,  min: 20 },
-    { id: "pigmento",     nombre: "Pigmento",         sinCita: 50,  conCita: 50,  min: 20 },
-    { id: "corte-barba",  nombre: "Corte y barba",    sinCita: 250, conCita: 250, min: 50 },
-    { id: "corte-facial", nombre: "Corte y facial",   sinCita: 250, conCita: 250, min: 50 },
-    { id: "corte-vip",    nombre: "Corte VIP",        sinCita: 400, conCita: 500, min: 60 }
+    // min = cuánto dura (para no encimar citas en el calendario). desde: true = el precio es "desde $…"
+    { id: "corte",         nombre: "Corte",                    sinCita: 200, conCita: 200, min: 40 },
+    { id: "corte-ceja",    nombre: "Corte y ceja",             sinCita: 200, conCita: 200, min: 40 },
+    { id: "cejas",         nombre: "Ceja",                     sinCita: 50,  conCita: 50,  min: 20 },
+    { id: "corte-facial",  nombre: "Corte y facial",           sinCita: 250, conCita: 250, min: 50 },
+    { id: "corte-clasico", nombre: "Corte clásico (tijera)",   sinCita: 200, conCita: 200, min: 40 },
+    { id: "corte-barba",   nombre: "Corte y barba",            sinCita: 250, conCita: 250, min: 50 },
+    { id: "corte-greca",   nombre: "Corte y greca",            sinCita: 200, conCita: 200, min: 40 },
+    { id: "corte-vip",     nombre: "Corte VIP",                sinCita: 500, conCita: 500, min: 60 },
+    { id: "ondulacion",    nombre: "Ondulación (chinos)",      sinCita: 450, conCita: 450, min: 60 },
+    { id: "colorimetria",  nombre: "Colorimetría",             sinCita: 350, conCita: 350, min: 40, desde: true }
   ],
 
   // ---- Lo que incluye cada tipo de visita ----

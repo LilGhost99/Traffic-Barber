@@ -538,3 +538,4 @@
 .opciones.horas{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}
 @media (max-width:640px){.opciones.horas{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .horario tr.especial td{color:var(--gold);font-size:14px}
+.precios.una .p-sin{visibility:hidden}

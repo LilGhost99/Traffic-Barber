@@ -51,7 +51,7 @@ function pintarServicios() {
   $("opServicios").innerHTML = NEGOCIO.servicios.map((s) => `
     <label class="opcion"><input type="radio" name="servicio" value="${escapar(s.id)}"${s.id === pre ? " checked" : ""}>
       <span class="o-cuerpo"><span class="o-nombre">${escapar(s.nombre)}${s.sinCita !== s.conCita ? `<small>Sin cita ${pesos(s.sinCita)}</small>` : ""}</span>
-      <span class="o-precio">${pesos(s.conCita)}</span></span></label>`).join("");
+      <span class="o-precio">${s.desde ? "<small>desde</small>" : ""}${pesos(s.conCita)}</span></span></label>`).join("");
 }
 
 // ---------- Barberos (solo si hay más de uno) ----------
