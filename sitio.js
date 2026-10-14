@@ -22,7 +22,7 @@ function pintarPrecios() {
       `<span class="p-nombre">${esc(s.nombre)}</span><span class="p-sin">${s.desde ? "desde " : ""}${pesos(s.sinCita)}</span>` +
       `<span class="p-con">${s.desde ? "desde " : ""}${pesos(s.conCita)}</span><span class="p-ir" aria-hidden="true">›</span></a>`
     ).join("");
-  if ($("notaPrecios") && NEGOCIO.notaPrecios) $("notaPrecios").textContent = "💈 " + NEGOCIO.notaPrecios;
+  if ($("notaPrecios") && NEGOCIO.notaPrecios) $("notaPrecios").textContent = NEGOCIO.notaPrecios;
 }
 
 function pintarBeneficios() {

@@ -97,11 +97,11 @@ export function diaDe(agenda, NEGOCIO, fecha) {
   return { ...normal, especial: false };
 }
 
-// Horas para citas: cada `paso` min desde que abre; el servicio (dur min) tiene que terminar antes de cerrar.
-export function horasCitaDe(info, paso = 30, dur = paso) {
+// Horas para citas: cada `paso` min desde que abre; la última cita empieza a la hora de cierre.
+export function horasCitaDe(info, paso = 30, dur = paso) {   // dur ya no limita el final (se queda por compatibilidad)
   if (!info || !info.abierto) return [];
   const out = [];
-  for (let m = aMinH(info.abre); m + dur <= aMinH(info.cierra); m += paso) out.push(aHH(m));
+  for (let m = aMinH(info.abre); m <= aMinH(info.cierra); m += paso) out.push(aHH(m));
   return out;
 }
 
