@@ -77,6 +77,7 @@
     <div id="avisoNueva" class="aviso ok hidden">¡Listo! Ya tienes tu tarjeta. Guarda esta página en tu pantalla de inicio para tenerla siempre a la mano.</div>
     <div id="avisoCumple" class="aviso oro hidden"></div>
 
+    <div class="t3d" id="t3d"><div class="t3d-in" id="t3dIn">
     <div class="tarjeta">
       <div class="cab">
         <div>
@@ -92,6 +93,13 @@
         <p>Enséñale este código al barbero para que te <b style="color:var(--text)">selle tu visita</b>. Tu tarjeta se actualiza sola.</p>
       </div>
     </div>
+    <div class="tarjeta t-reverso" aria-hidden="true">
+      <img class="rev-logo" src="logo.png" alt="" width="900" height="377">
+      <div class="rev-nombre" id="tNombre2"></div>
+      <div class="rev-sub">Tarjeta de cliente frecuente</div>
+    </div>
+    </div></div>
+    <p class="t3d-hint">Muévela con el dedo o tócala para darle la vuelta</p>
 
     <div class="box">
       <h2>Guarda tu tarjeta</h2>
@@ -243,7 +251,8 @@ function pintarTarjeta(c, id) {
     nombreActual = c.nombre;
     $("tNombre").textContent = c.nombre;
     const pro = premiosDe(c, NEGOCIO).pro;
-    document.querySelector(".tarjeta").classList.toggle("pro", pro);
+    document.querySelectorAll(".t3d .tarjeta").forEach(t => t.classList.toggle("pro", pro));
+    $("tNombre2").textContent = c.nombre;
     $("tSub").textContent = pro ? `Cliente PRO · Tarjeta #${c.tarjetas + 1}` : "Cliente frecuente";
     pintarSellos($("tSellos"), c.sellos || 0, NEGOCIO, c);
     if (sellosPrevios !== null && (c.sellos || 0) > sellosPrevios) {
@@ -446,6 +455,31 @@ if (!configurado) {
   if (id) { guardarId(id); abrirTarjeta(id); }
   else mostrar("vistaRegistro");
 }
+
+// ---------- Tarjeta 3D: se inclina al arrastrarla y se voltea al tocarla ----------
+(function () {
+  const caja = document.getElementById("t3d"), giro = document.getElementById("t3dIn");
+  if (!caja) return;
+  let base = 0, x0 = 0, y0 = 0, arrastrando = false, movio = false;
+  const poner = (ry, rx, suave) => { giro.style.transition = suave ? "transform .6s cubic-bezier(.2,.8,.2,1.15)" : "none"; giro.style.transform = `rotateY(${ry}deg) rotateX(${rx}deg)`; };
+  caja.addEventListener("pointerdown", (e) => { if (e.target.closest("a,button")) return; arrastrando = true; movio = false; x0 = e.clientX; y0 = e.clientY; caja.classList.add("activa"); });
+  window.addEventListener("pointermove", (e) => {
+    if (!arrastrando) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) movio = true;
+    poner(base + dx * 0.6, Math.max(-25, Math.min(25, -dy * 0.25)), false);
+  });
+  const soltar = (e) => {
+    if (!arrastrando) return;
+    arrastrando = false; caja.classList.remove("activa");
+    const dx = e.clientX - x0;
+    if (!movio) base += 180;                                   // un toque: darle la vuelta
+    else if (Math.abs(dx) > 90) base += dx > 0 ? 180 : -180;   // arrastre largo: también la voltea
+    poner(base, 0, true);
+  };
+  window.addEventListener("pointerup", soltar);
+  window.addEventListener("pointercancel", (e) => { if (arrastrando) { arrastrando = false; caja.classList.remove("activa"); poner(base, 0, true); } });
+})();
 </script>
 </body>
 </html>

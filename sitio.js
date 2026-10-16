@@ -13,11 +13,12 @@ const CHECK = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" strok
 function pintarPrecios() {
   const el = $("listaPrecios");
   if (!el) return;
-  const una = NEGOCIO.servicios.every((s) => s.sinCita === s.conCita);   // mismo precio con y sin cita: una sola columna
+  const lista = NEGOCIO.servicios.filter((s) => !s.soloCaja);
+  const una = lista.every((s) => s.sinCita === s.conCita);   // mismo precio con y sin cita: una sola columna
   el.classList.toggle("una", una);
   el.innerHTML =
     `<div class="precio-head" aria-hidden="true"><span>Servicio</span><span>${una ? "" : "Sin cita"}</span><span>${una ? "Precio" : "Con cita"}</span><span></span></div>` +
-    NEGOCIO.servicios.map((s) =>
+    lista.map((s) =>
       `<a class="precio-row" href="agendar.html?servicio=${encodeURIComponent(s.id)}" aria-label="${esc(s.nombre)}: ${pesos(s.sinCita)} sin cita, ${pesos(s.conCita)} con cita. Agendar">` +
       `<span class="p-nombre">${esc(s.nombre)}</span><span class="p-sin">${s.desde ? "desde " : ""}${pesos(s.sinCita)}</span>` +
       `<span class="p-con">${s.desde ? "desde " : ""}${pesos(s.conCita)}</span><span class="p-ir" aria-hidden="true">›</span></a>`

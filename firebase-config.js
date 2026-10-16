@@ -75,6 +75,7 @@ export const NEGOCIO = {
     { id: "corte-vip",     nombre: "Corte VIP",                sinCita: 500, conCita: 500, min: 60 },
     { id: "ondulacion",    nombre: "Ondulación (chinos)",      sinCita: 450, conCita: 450, min: 60 },
     { id: "corte-pareja",  nombre: "Corte en pareja",          sinCita: 350, conCita: 350, min: 80 },
+    { id: "corte-150",     nombre: "Corte sencillo",           sinCita: 150, conCita: 150, min: 40, soloCaja: true },   // solo en Caja del panel
     { id: "colorimetria",  nombre: "Colorimetría",             sinCita: 350, conCita: 350, min: 40, desde: true }
   ],
 
