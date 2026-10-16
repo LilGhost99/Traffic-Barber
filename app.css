@@ -360,19 +360,30 @@ p .link-btn{margin:0;min-height:0;font-size:inherit}
 
 /* ---- Tarjeta 3D: se inclina y se voltea ---- */
 .mini-logo{height:46px}
-.t3d{margin-top:20px;perspective:1100px;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
+.t3d{margin-top:20px;perspective:1200px;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
 .t3d.activa{cursor:grabbing}
-.t3d-in{display:grid;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.8,.2,1.15)}
+.t3d-in{display:grid;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.8,.2,1.15);--gx:50%;--gy:0%}
 .t3d-in>.tarjeta{grid-area:1/1;margin-top:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
-.t3d-in>.t-reverso{transform:rotateY(180deg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;
-  background:radial-gradient(90% 70% at 50% 40%,rgba(165,242,10,.18),transparent 70%),linear-gradient(160deg,#161616,#070707)}
-.rev-logo{width:78%;max-width:340px;height:auto;filter:drop-shadow(0 0 18px rgba(165,242,10,.35))}
-.rev-nombre{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:26px;text-transform:uppercase;letter-spacing:.06em}
-.rev-sub{font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+/* brillo: aparece solo mientras la mueves */
+.t3d-in>.tarjeta::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s;
+  background:radial-gradient(circle at var(--gx) var(--gy),rgba(255,255,255,.16),rgba(165,242,10,.06) 30%,transparent 55%)}
+.t3d.activa .t3d-in>.tarjeta::after{opacity:1}
+
+/* Reverso: como una tarjeta de plástico negra con el logo impreso */
+.t3d-in>.t-reverso{transform:rotateY(180deg);display:flex;flex-direction:column;padding:0;
+  background:linear-gradient(155deg,#1A1B1D 0%,#0A0A0A 55%,#121313 100%)}
+.rev-banda{height:34px;margin-top:26px;background:repeating-linear-gradient(115deg,var(--gold) 0 14px,#F2F2EE 14px 28px,#0A0A0A 28px 42px,#F2F2EE 42px 56px);opacity:.92}
+.rev-logo{display:block;width:74%;max-width:330px;height:auto;margin:auto;filter:drop-shadow(0 6px 22px rgba(165,242,10,.28))}
+.rev-pie{padding:0 22px 22px}
+.rev-nombre{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:24px;line-height:1;text-transform:uppercase;letter-spacing:.12em;color:#E9EAE6;
+  text-shadow:0 1px 0 rgba(255,255,255,.18),0 -1px 0 rgba(0,0,0,.8)}
+.rev-datos{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:15px;letter-spacing:.14em;color:#8E908C}
+.t-reverso.pro{background:linear-gradient(155deg,#221B0C 0%,#0B0906 55%,#18130A 100%)}
+.t-reverso.pro .rev-banda{background:repeating-linear-gradient(115deg,#E9C46A 0 14px,#F7F1DE 14px 28px,#0B0906 28px 42px,#F7F1DE 42px 56px)}
+.t-reverso.pro .rev-logo{filter:drop-shadow(0 6px 22px rgba(233,196,106,.3))}
+.t-reverso.pro .rev-nombre{color:#FFE7A3}
 .t3d-hint{text-align:center;font-size:13px;color:var(--muted);margin:10px 0 0}
 @media (prefers-reduced-motion:no-preference){
   .t3d:not(.activa) .t3d-in{animation:flota 6s ease-in-out infinite}
 }
-@keyframes flota{0%,100%{translate:0 0}50%{translate:0 -6px}}
-.t3d-in>.t-reverso.pro{background:radial-gradient(90% 70% at 50% 40%,rgba(233,196,106,.22),transparent 70%),linear-gradient(160deg,#17130A,#070707)}
-.t-reverso.pro .rev-nombre{color:#FFE7A3}
+@keyframes flota{0%,100%{translate:0 0}50%{translate:0 -5px}}
