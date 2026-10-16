@@ -46,7 +46,7 @@ export const NEGOCIO = {
   colores: { principal: "#A5F20A", claro: "#C6FF5C", suave: "#86B83A" },
 
   // Aviso de privacidad: quién es el responsable de los datos
-  legal: { responsable: "[NOMBRE DEL TITULAR O RAZÓN SOCIAL]", correo: "[CORREO DE CONTACTO]" },
+  legal: { responsable: "Wozer G.", correo: "wozeralexis13@gmail.com" },
 
   // ---- Tarjeta de sellos (el panel puede cambiar estos textos en Promos → Premios) ----
   sellosPorTarjeta: 10,
