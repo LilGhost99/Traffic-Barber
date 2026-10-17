@@ -205,7 +205,27 @@ function barraApp() {
   document.body.appendChild(nav);
 }
 
+// Tarjeta de ejemplo del inicio: se inclina siguiendo el dedo o el mouse
+function tarjetaDemo() {
+  const t = document.getElementById("rcDemo");
+  if (!t) return;
+  const mover = (e) => {
+    const r = t.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    t.classList.add("moviendo");
+    t.style.setProperty("--ry", (x * 26).toFixed(1) + "deg");
+    t.style.setProperty("--rx", (-y * 18).toFixed(1) + "deg");
+  };
+  const soltar = () => { t.classList.remove("moviendo"); t.style.setProperty("--ry", "0deg"); t.style.setProperty("--rx", "0deg"); };
+  t.addEventListener("pointermove", mover);
+  t.addEventListener("pointerdown", mover);
+  t.addEventListener("pointerleave", soltar);
+  t.addEventListener("pointerup", soltar);
+  t.addEventListener("pointercancel", soltar);
+}
+
 barraApp();
+tarjetaDemo();
 pintarPrecios();
 pintarBeneficios();
 pintarBarberos();
