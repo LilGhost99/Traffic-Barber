@@ -186,6 +186,26 @@ function prepararHorario() {
 }
 document.addEventListener("tb-agenda", (e) => { agendaVivo = e.detail; prepararHorario(); });
 
+// ---------- Barra de navegación abajo (solo en celular) ----------
+function barraApp() {
+  if (document.querySelector(".barra-app")) return;
+  const ic = (d) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const items = [
+    ["index.html", "Inicio", ic('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>')],
+    ["servicios.html", "Servicios", ic('<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/>')],
+    ["agendar.html", "Agendar", ic('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>')],
+    ["galeria.html", "Galería", ic('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>')],
+    ["visitanos.html", "Visítanos", ic('<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>')]
+  ];
+  const actual = (location.pathname.split("/").pop() || "index.html");
+  const nav = document.createElement("nav");
+  nav.className = "barra-app"; nav.setAttribute("aria-label", "Secciones");
+  nav.innerHTML = items.map(([href, txt, svg]) =>
+    `<a href="${href}" class="${href === "agendar.html" ? "ba-cta" : ""}"${href === actual ? ' aria-current="page"' : ""}><span class="ba-ic">${svg}</span><span>${txt}</span></a>`).join("");
+  document.body.appendChild(nav);
+}
+
+barraApp();
 pintarPrecios();
 pintarBeneficios();
 pintarBarberos();
