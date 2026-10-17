@@ -571,13 +571,22 @@
 .reward-list .li-pro b{color:#E9C46A}
 .rw-link{color:var(--text);font-weight:700;text-decoration:underline;text-decoration-color:var(--gold);text-decoration-thickness:2px;text-underline-offset:6px;padding:12px 4px}
 .rw-link:hover{color:var(--gold)}
-/* tarjeta de ejemplo: se mece sola y se inclina con el dedo */
-.reward-card{rotate:0deg;transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .5s cubic-bezier(.2,.8,.2,1.2);will-change:transform;touch-action:pan-y}
-.reward-card.moviendo{transition:none}
+/* tarjeta de ejemplo: se inclina con el dedo y se voltea al tocarla */
+.rc3d{flex:1 1 300px;max-width:420px;perspective:1100px;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
+.rc3d.activa{cursor:grabbing}
+.rc3d-in{display:grid;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.8,.2,1.15)}
+.rc3d-in>.reward-card{grid-area:1/1;max-width:none;rotate:0deg;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.reward:hover .rc3d-in>.reward-card{rotate:0deg}
+.rc-reverso{transform:rotateY(180deg);display:flex;flex-direction:column;padding:0 !important;overflow:hidden;background:linear-gradient(155deg,#1A1B1D 0%,#0A0A0A 55%,#121313 100%) !important}
+.rc-banda{height:28px;margin-top:22px;background:repeating-linear-gradient(115deg,var(--gold) 0 12px,#F2F2EE 12px 24px,#0A0A0A 24px 36px,#F2F2EE 36px 48px)}
+.rc-rev-logo{display:block;width:72%;height:auto;margin:auto;filter:drop-shadow(0 6px 20px rgb(var(--gold-rgb) / .3))}
+.rc-rev-nombre{padding:0 20px 20px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:22px;text-transform:uppercase;letter-spacing:.12em;color:#E9EAE6}
 @media (prefers-reduced-motion:no-preference){
-  .reward-card:not(.moviendo){animation:mece 7s ease-in-out infinite}
+  .rc3d:not(.activa) .rc3d-in{animation:flota-demo 6s ease-in-out infinite}
 }
-@keyframes mece{0%,100%{transform:perspective(900px) rotateY(-9deg) rotateX(3deg)}50%{transform:perspective(900px) rotateY(9deg) rotateX(-2deg)}}
+@keyframes flota-demo{0%,100%{translate:0 0}50%{translate:0 -6px}}
+/* los premios de la lista empiezan con mayúscula */
+.reward-list li>span::first-letter{text-transform:uppercase}
 @media (max-width:640px){
   .reward{padding:28px 22px}
   .reward-list li{grid-template-columns:96px minmax(0,1fr);font-size:16px}

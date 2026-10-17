@@ -205,23 +205,28 @@ function barraApp() {
   document.body.appendChild(nav);
 }
 
-// Tarjeta de ejemplo del inicio: se inclina siguiendo el dedo o el mouse
+// Tarjeta de ejemplo del inicio: se inclina al arrastrarla y se voltea al tocarla (igual que la tarjeta real)
 function tarjetaDemo() {
-  const t = document.getElementById("rcDemo");
-  if (!t) return;
-  const mover = (e) => {
-    const r = t.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
-    t.classList.add("moviendo");
-    t.style.setProperty("--ry", (x * 26).toFixed(1) + "deg");
-    t.style.setProperty("--rx", (-y * 18).toFixed(1) + "deg");
-  };
-  const soltar = () => { t.classList.remove("moviendo"); t.style.setProperty("--ry", "0deg"); t.style.setProperty("--rx", "0deg"); };
-  t.addEventListener("pointermove", mover);
-  t.addEventListener("pointerdown", mover);
-  t.addEventListener("pointerleave", soltar);
-  t.addEventListener("pointerup", soltar);
-  t.addEventListener("pointercancel", soltar);
+  const caja = document.getElementById("rcDemo");
+  if (!caja) return;
+  const giro = caja.firstElementChild;
+  let base = 0, x0 = 0, y0 = 0, activo = false, movio = false;
+  const poner = (ry, rx, suave) => { giro.style.transition = suave ? "transform .6s cubic-bezier(.2,.8,.2,1.15)" : "none"; giro.style.transform = `rotateY(${ry}deg) rotateX(${rx}deg)`; };
+  caja.addEventListener("pointerdown", (e) => { activo = true; movio = false; x0 = e.clientX; y0 = e.clientY; caja.classList.add("activa"); });
+  window.addEventListener("pointermove", (e) => {
+    if (!activo) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) movio = true;
+    poner(base + dx * 0.6, Math.max(-25, Math.min(25, -dy * 0.25)), false);
+  });
+  window.addEventListener("pointerup", (e) => {
+    if (!activo) return;
+    activo = false; caja.classList.remove("activa");
+    const dx = e.clientX - x0;
+    if (!movio) base += 180; else if (Math.abs(dx) > 90) base += dx > 0 ? 180 : -180;
+    poner(base, 0, true);
+  });
+  window.addEventListener("pointercancel", () => { if (activo) { activo = false; caja.classList.remove("activa"); poner(base, 0, true); } });
 }
 
 barraApp();
