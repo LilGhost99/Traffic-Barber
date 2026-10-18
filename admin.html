@@ -290,6 +290,7 @@
         <button type="button" data-cita="si" aria-pressed="false">Con cita</button>
       </div>
       <div class="serv-grid" id="cjServicios"></div>
+      <label id="cjOtroWrap" class="hidden">¿Qué fue?<input id="cjOtro" maxlength="60" placeholder="ej. Cera, delineado, producto"></label>
       <div class="fila">
         <label>Monto<input id="cjMonto" type="number" inputmode="numeric" min="1" max="20000" placeholder="$"></label>
         <label>Propina <span class="hint">opcional</span><input id="cjPropina" type="number" inputmode="numeric" min="0" max="5000" placeholder="$0"></label>
@@ -1494,7 +1495,7 @@ function abrirForm(cual) {
   ["formCobro", "formGasto"].forEach(f => $(f).classList.toggle("hidden", f !== cual));
   $(cual).scrollIntoView({ behavior: "smooth", block: "start" });
 }
-function cerrarForms() { ["formCobro", "formGasto"].forEach(f => { $(f).classList.add("hidden"); $(f).reset(); }); servSel = null; }
+function cerrarForms() { ["formCobro", "formGasto"].forEach(f => { $(f).classList.add("hidden"); $(f).reset(); }); servSel = null; $("cjOtroWrap").classList.add("hidden"); }
 document.querySelectorAll(".caja-form [data-cerrar]").forEach(b => b.addEventListener("click", cerrarForms));
 
 function prepararCobro() {
@@ -1517,7 +1518,8 @@ $("formCobro").addEventListener("click", (e) => {
     pintarServiciosCaja(); return; }
   const s2 = e.target.closest("[data-serv]");
   if (s2) { servSel = s2.dataset.serv; const sv = NEGOCIO.servicios.find(x => x.id === servSel);
-    $("cjMonto").value = sv ? (cobroConCita ? sv.conCita : sv.sinCita) : ""; if (!sv) $("cjMonto").focus();
+    $("cjMonto").value = sv ? (cobroConCita ? sv.conCita : sv.sinCita) : "";
+    $("cjOtroWrap").classList.toggle("hidden", !!sv); if (!sv) $("cjOtro").focus();
     pintarServiciosCaja(); return; }
   const m = e.target.closest("#cjMetodo [data-metodo]");
   if (m) { metodoCobro = m.dataset.metodo; seg($("cjMetodo"), "data-metodo", metodoCobro); }
@@ -1565,9 +1567,11 @@ $("formCobro").addEventListener("submit", async (e) => {
   if (!servSel) { aviso.textContent = "Elige qué se cobró."; aviso.classList.remove("hidden"); return; }
   if (!(monto > 0)) { aviso.textContent = "Escribe el monto."; aviso.classList.remove("hidden"); return; }
   const sv = NEGOCIO.servicios.find(x => x.id === servSel);
+  const otro = $("cjOtro").value.trim();
+  if (!sv && !otro) { aviso.textContent = "Escribe qué fue."; aviso.classList.remove("hidden"); $("cjOtro").focus(); return; }
   $("cjGuardar").disabled = true;
   try {
-    await guardarMov({ tipo: "ingreso", concepto: (sv ? sv.nombre : "Otro") + (cobroConCita ? " (cita)" : ""), servicioId: sv ? sv.id : "otro",
+    await guardarMov({ tipo: "ingreso", concepto: (sv ? sv.nombre : otro) + (cobroConCita ? " (cita)" : ""), servicioId: sv ? sv.id : "otro",
       conCita: cobroConCita, monto, propina, metodo: metodoCobro, barbero: $("cjBarbero").value || "" });
     cerrarForms(); periodo = "hoy"; pintarCaja();
   } catch (ex) { console.error(ex); aviso.textContent = "No se pudo guardar. Revisa que hayas pegado las reglas nuevas."; aviso.classList.remove("hidden"); }
