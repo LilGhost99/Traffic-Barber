@@ -238,7 +238,7 @@ function resumen() {
 function prepararCumple() {
   $("dia").innerHTML = '<option value="">Día</option>' + Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
   $("mes").innerHTML = '<option value="">Mes</option>' + MESES.map((m, i) => `<option value="${i + 1}">${m[0].toUpperCase() + m.slice(1)}</option>`).join("");
-  $("telefono").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
+  $("telefono").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 11); });
 }
 
 // ---------- Apartar ----------
@@ -267,7 +267,7 @@ $("formCita").addEventListener("submit", async (e) => {
     telefono = $("telefono").value.trim();
     const d = Number($("dia").value), m = Number($("mes").value);
     if (!nombre) return error("Escribe tu nombre.");
-    if (!/^\d{10}$/.test(telefono)) return error("Tu WhatsApp debe tener 10 dígitos.");
+    if (!/^([2-9]\d{9}|1\d{10})$/.test(telefono)) return error("Tu WhatsApp debe tener 10 dígitos (USA: 1 + 10 dígitos).");
     if (!d || !m) return error("Elige el día y mes de tu cumpleaños.");
     if (!$("acepto").checked) return error("Necesitas aceptar el aviso de privacidad.");
     cumple = String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");

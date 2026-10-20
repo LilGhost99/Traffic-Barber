@@ -67,7 +67,7 @@
     <div class="box">
       <form id="formBuscar" class="buscar">
         <label style="flex:1;gap:0"><span class="hidden">WhatsApp del cliente</span>
-          <input id="buscarTel" type="tel" inputmode="numeric" maxlength="10" placeholder="WhatsApp del cliente (10 dígitos)" aria-label="WhatsApp del cliente">
+          <input id="buscarTel" type="tel" inputmode="numeric" maxlength="11" placeholder="WhatsApp (10 dígitos · USA: 1 + 10)" aria-label="WhatsApp del cliente">
         </label>
         <button class="btn btn-primary btn-sm" type="submit">Buscar</button>
       </form>
@@ -90,8 +90,8 @@
       <p class="muted" style="margin:0 0 14px;font-size:14px;line-height:1.5">Para clientes que no saben registrarse solos. Al terminar puedes sellarle la visita y mandarle su tarjeta por WhatsApp.</p>
       <form id="formNuevo" novalidate>
         <label>Nombre<input id="nNombre" maxlength="40" autocomplete="off" placeholder="Nombre del cliente"></label>
-        <label>WhatsApp<span class="hint">10 dígitos</span>
-          <input id="nTel" type="tel" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="7711234567">
+        <label>WhatsApp<span class="hint">10 dígitos · USA: 1 + 10</span>
+          <input id="nTel" type="tel" inputmode="numeric" maxlength="11" autocomplete="off" placeholder="7711234567">
         </label>
         <fieldset style="border:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
           <legend style="font-weight:600;font-size:15px;padding:0;margin-bottom:6px">Cumpleaños</legend>
@@ -139,7 +139,7 @@
       <form id="formEditar" class="caja-form edit-cli hidden" novalidate>
         <h2>Editar cliente</h2>
         <label>Nombre<input id="eNombre" maxlength="40" autocomplete="off"></label>
-        <label>WhatsApp<span class="hint"> · 10 dígitos</span><input id="eTel" type="tel" inputmode="numeric" maxlength="10"></label>
+        <label>WhatsApp<span class="hint"> · 10 dígitos · USA: 1 + 10</span><input id="eTel" type="tel" inputmode="numeric" maxlength="11"></label>
         <div class="fila">
           <label><span class="hint">Cumple · día</span><select id="eDia"></select></label>
           <label><span class="hint">mes</span><select id="eMes"></select></label>
@@ -224,7 +224,7 @@
         <label>Día<input id="agFecha" type="date"></label>
         <div class="ag-horas" id="agHoras" role="group" aria-label="Hora"></div>
       </div>
-      <label>WhatsApp<span class="hint"> · 10 dígitos</span><input id="agTel" type="tel" inputmode="numeric" maxlength="10" placeholder="7711234567"></label>
+      <label>WhatsApp<span class="hint"> · 10 dígitos · USA: 1 + 10</span><input id="agTel" type="tel" inputmode="numeric" maxlength="11" placeholder="7711234567"></label>
       <div id="agCliente" class="ag-cliente hidden" role="status"></div>
       <label>Nombre<input id="agNombre" maxlength="40" placeholder="Cómo se llama"></label>
       <div id="agCumple" class="fila hidden">
@@ -479,6 +479,7 @@ import { signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProv
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, runTransaction, addDoc, serverTimestamp, writeBatch, setDoc, updateDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = id => document.getElementById(id);
+const waNum = t => (t.length === 11 ? t : "52" + t);   // USA se guarda como 1 + 10 dígitos
 const MAX = NEGOCIO.sellosPorTarjeta, MITAD = NEGOCIO.premioMitad, FIN = NEGOCIO.premioFinal;
 const P = (c) => premiosDe(c, NEGOCIO);   // premios según el nivel del cliente (normal o PRO)
 function textoBotones(c) {
@@ -611,7 +612,7 @@ function pintarCumples() {
     felicitar.textContent = `🎂 Felicitar a ${c.nombre.split(" ")[0]} por WhatsApp`;
     felicitar.setAttribute("aria-label", `Felicitar a ${c.nombre} por WhatsApp`);
     const link = new URL("tarjeta.html?id=" + encodeURIComponent(c.id), location.href).href;
-    felicitar.href = `https://wa.me/52${c.telefono}?text=` + encodeURIComponent(
+    felicitar.href = `https://wa.me/${waNum(c.telefono)}?text=` + encodeURIComponent(
       `¡Feliz cumpleaños, ${c.nombre}! 🎂 De parte de ${NEGOCIO.nombre}, este mes tu regalo es: ${NEGOCIO.promoCumple}. Te esperamos. Tu tarjeta: ${link}`);
     fila.appendChild(item); fila.appendChild(felicitar);
     el.appendChild(fila);
@@ -830,7 +831,7 @@ function htmlCita(c) {
     c.comentario ? `<span>📝 ${escapar(c.comentario)}</span>` : ""
   ].join("");
   const abierta = c.estado === "pendiente" || c.estado === "confirmada";
-  const wa = `https://wa.me/52${c.telefono}?text=` + encodeURIComponent(
+  const wa = `https://wa.me/${waNum(c.telefono)}?text=` + encodeURIComponent(
     `Hola ${c.nombre}, ${c.estado === "confirmada" ? "te recordamos" : "te confirmamos"} tu cita en ${NEGOCIO.nombre}: ` +
     `${c.servicio}, el ${fechaTitulo(c.fecha).replace(/^(Hoy|Mañana) · /, "")} a las ${hora12(c.hora)}. ¡Te esperamos! (${folioDe(c.id)})`);
   let acciones = "";
@@ -1046,9 +1047,9 @@ $("formAgenda").addEventListener("click", (e) => {
 });
 // Al poner el número se busca si ya tiene tarjeta
 $("agTel").addEventListener("input", async (e) => {
-  e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+  e.target.value = e.target.value.replace(/\D/g, "").slice(0, 11);
   const tel = e.target.value;
-  if (tel.length < 10) { agClienteId = ""; agBuscado = ""; $("agCliente").classList.add("hidden"); $("agCumple").classList.add("hidden"); return; }
+  if (!/^([2-9]\d{9}|1\d{10})$/.test(tel)) { agClienteId = ""; agBuscado = ""; $("agCliente").classList.add("hidden"); $("agCumple").classList.add("hidden"); return; }
   if (tel === agBuscado) return;
   agBuscado = tel;
   try {
@@ -1079,7 +1080,7 @@ $("formAgenda").addEventListener("submit", async (e) => {
   const ahora = agCuando === "ahora";
   const fecha = ahora ? fechaISO(new Date()) : $("agFecha").value;
   const hora = ahora ? ahoraHHMM() : agHora;
-  if (!/^\d{10}$/.test(telefono)) return falla("El WhatsApp debe tener 10 dígitos.");
+  if (!/^([2-9]\d{9}|1\d{10})$/.test(telefono)) return falla("El WhatsApp debe tener 10 dígitos (USA: 1 + 10 dígitos).");
   if (!nombre) return falla("Escribe su nombre.");
   if (!sv) return falla("Elige el servicio.");
   if (!ahora && !fecha) return falla("Elige el día.");
@@ -1113,7 +1114,7 @@ $("formAgenda").addEventListener("submit", async (e) => {
       // Walk-in: se sella de una vez y sale el botón para cobrar
       await atenderCita({ id: ref.id, ...datos }, document.createElement("button"));
     } else {
-      const wa = `https://wa.me/52${telefono}?text=` + encodeURIComponent(
+      const wa = `https://wa.me/${waNum(telefono)}?text=` + encodeURIComponent(
         `Hola ${nombre}, te confirmamos tu cita en ${NEGOCIO.nombre}: ${sv.nombre}, el ${fechaTitulo(fecha).replace(/^(Hoy|Mañana) · /, "")} a las ${hora12(hora)}. ¡Te esperamos! (${folioDe(ref.id)})`);
       $("agListo").innerHTML = `<span>✓ Cita de <b>${escapar(nombre)}</b> · ${fechaTitulo(fecha).split(" · ")[0]} ${hora12(hora)}</span>
         <div><a class="btn btn-primary btn-sm" href="${wa}" target="_blank" rel="noopener">Mandarle confirmación</a></div>`;
@@ -1631,13 +1632,13 @@ function mostrarCobroRapido(c) {
 }
 
 // ---------- Buscar ----------
-$("buscarTel").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
+$("buscarTel").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 11); });
 $("formBuscar").addEventListener("submit", async (e) => {
   e.preventDefault();
   const tel = $("buscarTel").value.trim();
   $("avisoBuscar").classList.add("hidden");
   $("resultados").innerHTML = "";
-  if (!/^\d{10}$/.test(tel)) { mostrarAviso("Escribe los 10 dígitos del WhatsApp."); return; }
+  if (!/^([2-9]\d{9}|1\d{10})$/.test(tel)) { mostrarAviso("Escribe los 10 dígitos del WhatsApp (USA: 1 + 10 dígitos)."); return; }
   try {
     const r = await getDocs(query(collection(db, "clientes"), where("telefono", "==", tel)));
     const docs = r.docs.filter(d => !d.data().unidoA);
@@ -1681,7 +1682,7 @@ async function detenerLector() {
 // ---------- Registrar cliente desde el panel ----------
 $("nDia").innerHTML = '<option value="">Día</option>' + Array.from({length:31}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join("");
 $("nMes").innerHTML = '<option value="">Mes</option>' + MESES.map((m, i) => `<option value="${i+1}">${m[0].toUpperCase() + m.slice(1)}</option>`).join("");
-$("nTel").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
+$("nTel").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 11); });
 
 function cerrarNuevo() {
   $("formNuevo").reset();
@@ -1693,7 +1694,7 @@ $("btnNuevo").addEventListener("click", () => {
   caja.classList.toggle("hidden");
   if (!caja.classList.contains("hidden")) {
     const tel = $("buscarTel").value.trim();
-    if (/^\d{10}$/.test(tel)) $("nTel").value = tel;
+    if (/^([2-9]\d{9}|1\d{10})$/.test(tel)) $("nTel").value = tel;
     caja.scrollIntoView({ behavior: "smooth", block: "start" });
     $("nNombre").focus();
   }
@@ -1709,7 +1710,7 @@ $("formNuevo").addEventListener("submit", async (e) => {
   const d = Number($("nDia").value), m = Number($("nMes").value);
   let problema = "";
   if (!nombre) problema = "Escribe el nombre del cliente.";
-  else if (!/^\d{10}$/.test(telefono)) problema = "El WhatsApp debe tener 10 dígitos.";
+  else if (!/^([2-9]\d{9}|1\d{10})$/.test(telefono)) problema = "El WhatsApp debe tener 10 dígitos (USA: 1 + 10 dígitos).";
   else if (!d || !m) problema = "Elige el día y mes de su cumpleaños.";
   else if (!$("nAcepto").checked) problema = "Confirma que le avisaste al cliente sobre sus datos.";
   if (problema) { aviso.textContent = problema; aviso.classList.remove("hidden"); return; }
@@ -1768,7 +1769,7 @@ function abrirEditar() {
 const cerrarEditar = () => $("formEditar").classList.add("hidden");
 $("aEditar").addEventListener("click", abrirEditar);
 $("eCancelar").addEventListener("click", cerrarEditar);
-$("eTel").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
+$("eTel").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 11); });
 $("formEditar").addEventListener("submit", async (e) => {
   e.preventDefault();
   const aviso = $("eAviso"); aviso.classList.add("hidden");
@@ -1776,7 +1777,7 @@ $("formEditar").addEventListener("submit", async (e) => {
   const nombre = $("eNombre").value.trim(), telefono = $("eTel").value.trim();
   const d = Number($("eDia").value), m = Number($("eMes").value), sellos = Number($("eSellos").value);
   if (!nombre) return falla("Escribe su nombre.");
-  if (!/^\d{10}$/.test(telefono)) return falla("El WhatsApp debe tener 10 dígitos.");
+  if (!/^([2-9]\d{9}|1\d{10})$/.test(telefono)) return falla("El WhatsApp debe tener 10 dígitos (USA: 1 + 10 dígitos).");
   if (!!d !== !!m) return falla("Elige día y mes del cumpleaños (o deja los dos vacíos).");
   if (!Number.isInteger(sellos) || sellos < 0 || sellos > MAX) return falla(`Los sellos van de 0 a ${MAX}.`);
   const id = actual;
@@ -1836,7 +1837,7 @@ function pintarCliente(c) {
   $("dEstado").innerHTML = estado;
 
   const link = new URL("tarjeta.html?id=" + encodeURIComponent(actual), location.href).href;
-  $("aWhats").href = `https://wa.me/52${c.telefono}?text=` +
+  $("aWhats").href = `https://wa.me/${waNum(c.telefono)}?text=` +
     encodeURIComponent(`Hola ${c.nombre}, esta es tu tarjeta de cliente frecuente de ${NEGOCIO.nombre}: ${link}`);
 
   $("aSellar").disabled = s >= MAX;
