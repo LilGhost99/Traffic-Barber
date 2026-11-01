@@ -162,13 +162,12 @@ const minDe = c => c.min || durDe(NEGOCIO, c.servicioId);
 const waNum = t => (String(t).length === 11 ? t : "52" + t);
 const folioDe = id => "TB-" + id.slice(0, 5).toUpperCase();
 const VISIBLES = ["pendiente", "confirmada", "atendida"];
-const enApp = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 
 let citas = [], agenda = null, dia = fechaISO(new Date()), abierta = null;
 
 // ---------- Entrar ----------
 function aviso(txt, ok = false) { const a = $("eLogin"); a.className = "aviso" + (ok ? " ok" : ""); a.textContent = txt; }
-$("bGoogle").classList.toggle("hidden", enApp);   // en la app del iPhone Google no regresa: ahí va con contraseña
+$("bGoogle").classList.remove("hidden");
 $("fLogin").addEventListener("submit", async e => {
   e.preventDefault(); $("bEntrar").disabled = true;
   try { await signInWithEmailAndPassword(auth, $("correo").value.trim(), $("clave").value); }
