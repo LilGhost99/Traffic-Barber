@@ -533,7 +533,7 @@ $("btnGoogle").addEventListener("click", async () => {
     } else if (ex.code !== "auth/popup-closed-by-user" && ex.code !== "auth/cancelled-popup-request") {
       $("errorLogin").textContent = ex.code === "auth/unauthorized-domain"
         ? "Este dominio no está autorizado en Firebase (Authentication → Settings → Authorized domains)."
-        : "No se pudo entrar con Google. Intenta de nuevo.";
+        : `No se pudo entrar con Google (${ex.code || "error"}). Intenta de nuevo.`;
       $("errorLogin").classList.remove("hidden");
     }
   }

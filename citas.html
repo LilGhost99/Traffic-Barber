@@ -176,7 +176,7 @@ $("fLogin").addEventListener("submit", async e => {
 });
 $("bGoogle").addEventListener("click", async () => {
   try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-  catch (ex) { console.error(ex); if (ex.code !== "auth/popup-closed-by-user") aviso("No se pudo entrar con Google. Usa correo y contraseña."); }
+  catch (ex) { console.error(ex); if (ex.code !== "auth/popup-closed-by-user") aviso(`No se pudo entrar con Google (${ex.code || "error"}). Usa correo y contraseña.`); }
 });
 $("bClave").addEventListener("click", async () => {
   const correo = $("correo").value.trim();
